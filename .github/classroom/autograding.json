@@ -1,0 +1,94 @@
+{
+  "tests": [
+    {
+      "name": "FTPClient.Put",
+      "setup": "if [ ! -f \".built\" ]; then (     touch .built &&     rm -rf test_classroom &&     rm -rf build &&     git clone https://github.com/N2Sys-EDU/2023-lab1-myFTP-Test.git test_classroom &&     cd ./test_classroom &&     mkdir -p build &&     cd build &&     cmake .. &&     make &&     cd ../../ &&     mkdir -p build &&     cp ./test_classroom/ftp_client_std ./build &&     cp ./test_classroom/ftp_server_std ./build &&     cp ./test_classroom/build/ftp_test ./build &&     cd ./build &&     cmake .. &&     make &&     cd ../) fi",
+      "run": "cd build && ./ftp_test --gtest_filter=FTPClient.Put",
+      "input": "",
+      "output": "",
+      "comparison": "exact",
+      "timeout": 1,
+      "points": null
+    },
+    {
+      "name": "FTPServer.Open",
+      "setup": "if [ ! -f \".built\" ]; then (     touch .built &&     rm -rf test_classroom &&     rm -rf build &&     git clone https://github.com/N2Sys-EDU/2023-lab1-myFTP-Test.git test_classroom &&     cd ./test_classroom &&     mkdir -p build &&     cd build &&     cmake .. &&     make &&     cd ../../ &&     mkdir -p build &&     cp ./test_classroom/ftp_client_std ./build &&     cp ./test_classroom/ftp_server_std ./build &&     cp ./test_classroom/build/ftp_test ./build &&     cd ./build &&     cmake .. &&     make &&     cd ../) fi",
+      "run": "cd build && ./ftp_test --gtest_filter=FTPServer.Open",
+      "input": "",
+      "output": "",
+      "comparison": "exact",
+      "timeout": 1,
+      "points": 10
+    },
+    {
+      "name": "FTPServer.Get",
+      "setup": "if [ ! -f \".built\" ]; then (     touch .built &&     rm -rf test_classroom &&     rm -rf build &&     git clone https://github.com/N2Sys-EDU/2023-lab1-myFTP-Test.git test_classroom &&     cd ./test_classroom &&     mkdir -p build &&     cd build &&     cmake .. &&     make &&     cd ../../ &&     mkdir -p build &&     cp ./test_classroom/ftp_client_std ./build &&     cp ./test_classroom/ftp_server_std ./build &&     cp ./test_classroom/build/ftp_test ./build &&     cd ./build &&     cmake .. &&     make &&     cd ../) fi",
+      "run": "cd build && ./ftp_test --gtest_filter=FTPServer.Get",
+      "input": "",
+      "output": "",
+      "comparison": "exact",
+      "timeout": 1,
+      "points": 10
+    },
+    {
+      "name": "FTPServer.Put",
+      "setup": "if [ ! -f \".built\" ]; then (     touch .built &&     rm -rf test_classroom &&     rm -rf build &&     git clone https://github.com/N2Sys-EDU/2023-lab1-myFTP-Test.git test_classroom &&     cd ./test_classroom &&     mkdir -p build &&     cd build &&     cmake .. &&     make &&     cd ../../ &&     mkdir -p build &&     cp ./test_classroom/ftp_client_std ./build &&     cp ./test_classroom/ftp_server_std ./build &&     cp ./test_classroom/build/ftp_test ./build &&     cd ./build &&     cmake .. &&     make &&     cd ../) fi",
+      "run": "cd build && ./ftp_test --gtest_filter=FTPServer.Put",
+      "input": "",
+      "output": "",
+      "comparison": "exact",
+      "timeout": 1,
+      "points": 10
+    },
+    {
+      "name": "FTPServer.SHA256",
+      "setup": "if [ ! -f \".built\" ]; then (     touch .built &&     rm -rf test_classroom &&     rm -rf build &&     git clone https://github.com/N2Sys-EDU/2023-lab1-myFTP-Test.git test_classroom &&     cd ./test_classroom &&     mkdir -p build &&     cd build &&     cmake .. &&     make &&     cd ../../ &&     mkdir -p build &&     cp ./test_classroom/ftp_client_std ./build &&     cp ./test_classroom/ftp_server_std ./build &&     cp ./test_classroom/build/ftp_test ./build &&     cd ./build &&     cmake .. &&     make &&     cd ../) fi",
+      "run": "cd build && ./ftp_test --gtest_filter=FTPServer.SHA256",
+      "input": "",
+      "output": "",
+      "comparison": "exact",
+      "timeout": 1,
+      "points": 10
+    },
+    {
+      "name": "FTPServer.List",
+      "setup": "if [ ! -f \".built\" ]; then (     touch .built &&     rm -rf test_classroom &&     rm -rf build &&     git clone https://github.com/N2Sys-EDU/2023-lab1-myFTP-Test.git test_classroom &&     cd ./test_classroom &&     mkdir -p build &&     cd build &&     cmake .. &&     make &&     cd ../../ &&     mkdir -p build &&     cp ./test_classroom/ftp_client_std ./build &&     cp ./test_classroom/ftp_server_std ./build &&     cp ./test_classroom/build/ftp_test ./build &&     cd ./build &&     cmake .. &&     make &&     cd ../) fi",
+      "run": "cd build && ./ftp_test --gtest_filter=FTPServer.List",
+      "input": "",
+      "output": "",
+      "comparison": "exact",
+      "timeout": 1,
+      "points": 10
+    },
+    {
+      "name": "FTPClient.Open",
+      "setup": "if [ ! -f \".built\" ]; then (     touch .built &&     rm -rf test_classroom &&     rm -rf build &&     git clone https://github.com/N2Sys-EDU/2023-lab1-myFTP-Test.git test_classroom &&     cd ./test_classroom &&     mkdir -p build &&     cd build &&     cmake .. &&     make &&     cd ../../ &&     mkdir -p build &&     cp ./test_classroom/ftp_client_std ./build &&     cp ./test_classroom/ftp_server_std ./build &&     cp ./test_classroom/build/ftp_test ./build &&     cd ./build &&     cmake .. &&     make &&     cd ../) fi",
+      "run": "cd build && ./ftp_test --gtest_filter=FTPClient.Open",
+      "input": "",
+      "output": "",
+      "comparison": "exact",
+      "timeout": 1,
+      "points": 10
+    },
+    {
+      "name": "FTPClient.Get",
+      "setup": "if [ ! -f \".built\" ]; then (     touch .built &&     rm -rf test_classroom &&     rm -rf build &&     git clone https://github.com/N2Sys-EDU/2023-lab1-myFTP-Test.git test_classroom &&     cd ./test_classroom &&     mkdir -p build &&     cd build &&     cmake .. &&     make &&     cd ../../ &&     mkdir -p build &&     cp ./test_classroom/ftp_client_std ./build &&     cp ./test_classroom/ftp_server_std ./build &&     cp ./test_classroom/build/ftp_test ./build &&     cd ./build &&     cmake .. &&     make &&     cd ../) fi",
+      "run": "cd build && ./ftp_test --gtest_filter=FTPClient.Get",
+      "input": "",
+      "output": "",
+      "comparison": "exact",
+      "timeout": 1,
+      "points": 10
+    },
+    {
+      "name": "FTPClient.Put",
+      "setup": "if [ ! -f \".built\" ]; then (     touch .built &&     rm -rf test_classroom &&     rm -rf build &&     git clone https://github.com/N2Sys-EDU/2023-lab1-myFTP-Test.git test_classroom &&     cd ./test_classroom &&     mkdir -p build &&     cd build &&     cmake .. &&     make &&     cd ../../ &&     mkdir -p build &&     cp ./test_classroom/ftp_client_std ./build &&     cp ./test_classroom/ftp_server_std ./build &&     cp ./test_classroom/build/ftp_test ./build &&     cd ./build &&     cmake .. &&     make &&     cd ../) fi",
+      "run": "cd build && ./ftp_test --gtest_filter=FTPClient.Put",
+      "input": "",
+      "output": "",
+      "comparison": "exact",
+      "timeout": 1,
+      "points": 10
+    }
+  ]
+}
