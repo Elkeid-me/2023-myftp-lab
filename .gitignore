@@ -1,1 +1,5 @@
 build/*
+doc/*
+.cache/*
+.clang-format
+compile_commands.json
