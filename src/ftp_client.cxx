@@ -1,6 +1,7 @@
 #include <iostream>
 
-int main() {
+int main()
+{
     std::cerr << "hello from ftp client" << std::endl;
     return 0;
 }
