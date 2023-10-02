@@ -9,8 +9,7 @@
 
 static constexpr int LISTEN_BACKLOG{1024};
 
-static void Set_socket_option(int s, int level, int optname, const void *optval,
-                       int optlen)
+static void Set_socket_option(int s, int level, int optname, const void *optval, int optlen)
 {
     int rc;
 
@@ -18,8 +17,7 @@ static void Set_socket_option(int s, int level, int optname, const void *optval,
         unix_error("Setsockopt error");
 }
 
-static addrinfo *Get_addr_info(const char *host, const char *service,
-                               const addrinfo *hints)
+static addrinfo *Get_addr_info(const char *host, const char *service, const addrinfo *hints)
 {
     addrinfo *result;
 
@@ -31,27 +29,23 @@ static addrinfo *Get_addr_info(const char *host, const char *service,
     return nullptr;
 }
 
-static int open_listen_fd(const char * ip, const char *port)
+static int open_listen_fd(const char *port)
 {
     addrinfo hints;
-
-    int listen_fd;
-
     std::memset(&hints, 0, sizeof(addrinfo));
-
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE | AI_ADDRCONFIG | AI_NUMERICSERV;
 
     addrinfo *list_head{Get_addr_info(nullptr, port, &hints)};
 
-    addrinfo *ptr{list_head};
-    while (ptr)
+    int listen_fd;
+    addrinfo *ptr;
+
+    for (ptr = list_head; ptr; ptr = ptr->ai_next)
     {
-        if ((listen_fd = socket(ptr->ai_family, ptr->ai_socktype,
-                                ptr->ai_protocol)) >= 0)
+        if ((listen_fd = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol)) >= 0)
         {
-            Set_socket_option(listen_fd, SOL_SOCKET, SO_REUSEADDR, &optval,
-                              sizeof(int));
+            Set_socket_option(listen_fd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int));
 
             if (bind(listen_fd, ptr->ai_addr, ptr->ai_addrlen) == 0)
                 break;
@@ -88,8 +82,7 @@ int open_clientfd(const char *hostname, const char *port)
 
     for (p = listp; p; p = p->ai_next)
     {
-        if ((clientfd =
-                 socket(p->ai_family, p->ai_socktype, p->ai_protocol)) < 0)
+        if ((clientfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) < 0)
             continue;
 
         if (connect(clientfd, p->ai_addr, p->ai_addrlen) != -1)
