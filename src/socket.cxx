@@ -9,7 +9,8 @@
 
 static constexpr int LISTEN_BACKLOG{1024};
 
-static void Set_socket_option(int s, int level, int optname, const void *optval, int optlen)
+static void Set_socket_option(int s, int level, int optname, const void *optval,
+                              int optlen)
 {
     int rc;
 
@@ -17,7 +18,8 @@ static void Set_socket_option(int s, int level, int optname, const void *optval,
         unix_error("Setsockopt error");
 }
 
-static addrinfo *Get_addr_info(const char *host, const char *service, const addrinfo *hints)
+static addrinfo *Get_addr_info(const char *host, const char *service,
+                               const addrinfo *hints)
 {
     addrinfo *result;
 
@@ -43,16 +45,17 @@ static int open_listen_fd(const char *port)
 
     for (ptr = list_head; ptr; ptr = ptr->ai_next)
     {
-        if ((listen_fd = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol)) >= 0)
+        if ((listen_fd = socket(ptr->ai_family, ptr->ai_socktype,
+                                ptr->ai_protocol)) >= 0)
         {
-            Set_socket_option(listen_fd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int));
+            Set_socket_option(listen_fd, SOL_SOCKET, SO_REUSEADDR, &optval,
+                              sizeof(int));
 
             if (bind(listen_fd, ptr->ai_addr, ptr->ai_addrlen) == 0)
                 break;
 
             Close(listen_fd);
         }
-        ptr = ptr->ai_next;
     }
 
     freeaddrinfo(list_head);
@@ -68,21 +71,21 @@ static int open_listen_fd(const char *port)
     return listen_fd;
 }
 
-int open_clientfd(const char *hostname, const char *port)
+static int open_clientfd(const char *hostname, const char *port)
 {
     int clientfd;
     addrinfo hints, *listp, *p;
 
     memset(&hints, 0, sizeof(addrinfo));
     hints.ai_socktype = SOCK_STREAM;
-    hints.ai_flags = AI_NUMERICSERV;
-    hints.ai_flags |= AI_ADDRCONFIG;
+    hints.ai_flags = AI_NUMERICSERV | AI_ADDRCONFIG;
     if (getaddrinfo(hostname, port, &hints, &listp) < 0)
         return -1;
 
     for (p = listp; p; p = p->ai_next)
     {
-        if ((clientfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) < 0)
+        if ((clientfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) <
+            0)
             continue;
 
         if (connect(clientfd, p->ai_addr, p->ai_addrlen) != -1)
@@ -93,8 +96,8 @@ int open_clientfd(const char *hostname, const char *port)
     freeaddrinfo(listp);
     if (!p)
         return -1;
-    else
-        return clientfd;
+
+    return clientfd;
 }
 
 int Open_listen_fd(const char *port)
