@@ -6,10 +6,18 @@ set(CMAKE_CXX_STANDARD 20)
 
 set(SERVER_SOURCES
     src/ftp_server.cxx
+    src/error_handle.cxx
+    src/file_process.cxx
+    src/socket.cxx
+    src/tools.cxx
 )
 
 set(CLIENT_SOURCES
-    src/ftp_server.cxx
+    src/ftp_client.cxx
+    src/error_handle.cxx
+    src/file_process.cxx
+    src/socket.cxx
+    src/tools.cxx
 )
 
 add_executable(ftp_server ${SERVER_SOURCES})
