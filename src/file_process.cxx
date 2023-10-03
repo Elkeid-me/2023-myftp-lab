@@ -2,20 +2,27 @@
 #include <cstddef>
 #include <unistd.h>
 
-void Close(int fd)
+namespace file_process
 {
-    if (close(fd) == -1)
-        unix_error("Function `close' error");
-}
+    void close(int fd)
+    {
+        if (::close(fd) == -1)
+            unix_error("Function `close' error");
+    }
 
-void Read(int fd, char *buf, std::size_t size)
-{
-    if (read(fd, buf, size) < 0)
-        unix_error("Function `read' error");
-}
+    std::size_t read(int fd, char *buf, std::size_t size)
+    {
+        ssize_t ret{::read(fd, buf, size)};
+        if (ret < 0)
+            unix_error("Function `read' error");
+        return ret;
+    }
 
-void Write(int fd, const char *buf, std::size_t size)
-{
-    if (write(fd, buf, size) < 0)
-        unix_error("Function `write' error");
+    std::size_t write(int fd, const char *buf, std::size_t size)
+    {
+        ssize_t ret{::write(fd, buf, size)};
+        if (ret < 0)
+            unix_error("Function `write' error");
+        return ret;
+    }
 }

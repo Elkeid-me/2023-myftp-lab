@@ -9,7 +9,7 @@
 
 static constexpr int LISTEN_BACKLOG{1024};
 
-static void Set_socket_option(int s, int level, int optname, const void *optval,
+static void set_socket_option(int s, int level, int optname, const void *optval,
                               int optlen)
 {
     int rc;
@@ -18,7 +18,7 @@ static void Set_socket_option(int s, int level, int optname, const void *optval,
         unix_error("Setsockopt error");
 }
 
-static addrinfo *Get_addr_info(const char *host, const char *service,
+static addrinfo *get_addr_info(const char *host, const char *service,
                                const addrinfo *hints)
 {
     addrinfo *result;
@@ -38,7 +38,7 @@ static int open_listen_fd(const char *port)
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE | AI_ADDRCONFIG | AI_NUMERICSERV;
 
-    addrinfo *list_head{Get_addr_info(nullptr, port, &hints)};
+    addrinfo *list_head{get_addr_info(nullptr, port, &hints)};
 
     int listen_fd;
     addrinfo *ptr;
@@ -48,13 +48,13 @@ static int open_listen_fd(const char *port)
         if ((listen_fd = socket(ptr->ai_family, ptr->ai_socktype,
                                 ptr->ai_protocol)) >= 0)
         {
-            Set_socket_option(listen_fd, SOL_SOCKET, SO_REUSEADDR, &optval,
+            set_socket_option(listen_fd, SOL_SOCKET, SO_REUSEADDR, &socket_process::optval,
                               sizeof(int));
 
             if (bind(listen_fd, ptr->ai_addr, ptr->ai_addrlen) == 0)
                 break;
 
-            Close(listen_fd);
+            file_process::close(listen_fd);
         }
     }
 
@@ -64,14 +64,14 @@ static int open_listen_fd(const char *port)
 
     if (listen(listen_fd, LISTEN_BACKLOG) < 0)
     {
-        Close(listen_fd);
+        file_process::close(listen_fd);
         return -1;
     }
 
     return listen_fd;
 }
 
-static int open_clientfd(const char *hostname, const char *port)
+static int open_client_fd(const char *hostname, const char *port)
 {
     int clientfd;
     addrinfo hints, *listp, *p;
@@ -90,7 +90,7 @@ static int open_clientfd(const char *hostname, const char *port)
 
         if (connect(clientfd, p->ai_addr, p->ai_addrlen) != -1)
             break;
-        Close(clientfd);
+        file_process::close(clientfd);
     }
 
     freeaddrinfo(listp);
@@ -100,29 +100,32 @@ static int open_clientfd(const char *hostname, const char *port)
     return clientfd;
 }
 
-int Open_listen_fd(const char *port)
+namespace socket_process
 {
-    int rc;
+    int open_listen_fd(const char *port)
+    {
+        int rc;
 
-    if ((rc = open_listen_fd(port)) < 0)
-        unix_error("Open_listenfd error");
-    return rc;
-}
+        if ((rc = ::open_listen_fd(port)) < 0)
+            unix_error("Open_listenfd error");
+        return rc;
+    }
 
-int Open_clientfd(const char *hostname, const char *port)
-{
-    int rc;
+    int open_client_fd(const char *hostname, const char *port)
+    {
+        int rc;
 
-    if ((rc = open_clientfd(hostname, port)) < 0)
-        unix_error("Open_clientfd error");
-    return rc;
-}
+        if ((rc = ::open_client_fd(hostname, port)) < 0)
+            unix_error("Open_clientfd error");
+        return rc;
+    }
 
-int Accept(int s, sockaddr *addr, socklen_t *addrlen)
-{
-    int rc;
+    int accept(int s, sockaddr *addr, socklen_t *addrlen)
+    {
+        int rc;
 
-    if ((rc = accept(s, addr, addrlen)) < 0)
-        unix_error("Accept error");
-    return rc;
+        if ((rc = ::accept(s, addr, addrlen)) < 0)
+            unix_error("Accept error");
+        return rc;
+    }
 }

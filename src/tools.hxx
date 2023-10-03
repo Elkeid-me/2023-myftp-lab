@@ -3,22 +3,24 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <string_view>
 #include <regex>
+#include <string_view>
 
 constexpr uint64_t MAGIC_NUMBER_LENGTH{6};
 
 constexpr std::string_view MYFTP_PROTOCOL{"\xc1\xa1\x10"
                                           "ftp"};
+constexpr std::size_t BUF_SIZE{102400};
 
 constexpr auto REGEX_FLAG{std::regex_constants::icase |
                           std::regex_constants::ECMAScript |
                           std::regex_constants::optimize};
-const std::regex PORT_PATTERN{"[0-9]", REGEX_FLAG};
-const std::regex IPv4_PATTERN{R"([0-9]{3}(\.[0-9]{3}){3})", REGEX_FLAG};
+const std::regex PORT_PATTERN{"[0-9]+", REGEX_FLAG};
+const std::regex IPv4_PATTERN{R"([0-9]{1,3}(\.[0-9]{1,3}){3})", REGEX_FLAG};
 const std::regex IPv6_PATTERN{R"(([0-9]|[a-f])(:([0-9]|[a-f])){7})",
                               REGEX_FLAG};
 
+static_assert(sizeof(unsigned char) == 1);
 
 enum class MYFTP_HEAD_TYPE : unsigned char
 {
@@ -61,26 +63,31 @@ public:
     MYFTP_HEAD_TYPE get_type() const;
     unsigned char get_status() const;
     std::uint32_t get_length() const;
-    std::uint32_t get_file_length() const;
-    std::uint32_t get_file_name_length() const;
+    std::uint32_t get_payload_length() const;
 
     void get(int fd_to_host);
     void send(int fd_to_host) const;
 };
 
-const myftp_head
-    OPEN_CONNECTION_REPLY(MYFTP_HEAD_TYPE::OPEN_CONNECTION_REPLY, 1, 12);
+constexpr std::size_t MYFTP_HEAD_SIZE{sizeof(myftp_head)};
+static_assert(MYFTP_HEAD_SIZE == 12);
 
-const myftp_head GET_REPLY_SUCCESS(MYFTP_HEAD_TYPE::GET_REPLY, 1, 12);
-const myftp_head GET_REPLY_FAIL(MYFTP_HEAD_TYPE::GET_REPLY, 0, 12);
+const myftp_head OPEN_CONNECTION_REPLY(MYFTP_HEAD_TYPE::OPEN_CONNECTION_REPLY,
+                                       1, MYFTP_HEAD_SIZE);
 
-const myftp_head PUT_REPLY(MYFTP_HEAD_TYPE::PUT_REPLY, 1, 12);
+const myftp_head GET_REPLY_SUCCESS(MYFTP_HEAD_TYPE::GET_REPLY, 1,
+                                   MYFTP_HEAD_SIZE);
+const myftp_head GET_REPLY_FAIL(MYFTP_HEAD_TYPE::GET_REPLY, 0, MYFTP_HEAD_SIZE);
 
-const myftp_head SHA_REPLAY_SUCCESS(MYFTP_HEAD_TYPE::SHA_REPLY, 1, 12);
-const myftp_head SHA_REPLAY_FAIL(MYFTP_HEAD_TYPE::SHA_REPLY, 0, 12);
+const myftp_head PUT_REPLY(MYFTP_HEAD_TYPE::PUT_REPLY, 1, MYFTP_HEAD_SIZE);
 
-const myftp_head QUIT_REQUEST(MYFTP_HEAD_TYPE::QUIT_REQUEST, 1, 12);
-const myftp_head QUIT_REPLY(MYFTP_HEAD_TYPE::QUIT_REPLY, 1, 12);
+const myftp_head SHA_REPLAY_SUCCESS(MYFTP_HEAD_TYPE::SHA_REPLY, 1,
+                                    MYFTP_HEAD_SIZE);
+const myftp_head SHA_REPLAY_FAIL(MYFTP_HEAD_TYPE::SHA_REPLY, 0,
+                                 MYFTP_HEAD_SIZE);
 
+const myftp_head QUIT_REQUEST(MYFTP_HEAD_TYPE::QUIT_REQUEST, 1,
+                              MYFTP_HEAD_SIZE);
+const myftp_head QUIT_REPLY(MYFTP_HEAD_TYPE::QUIT_REPLY, 1, MYFTP_HEAD_SIZE);
 
 #endif
