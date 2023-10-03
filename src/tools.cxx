@@ -1,6 +1,7 @@
 #include "tools.hxx"
 #include "file_process.hxx"
 #include <arpa/inet.h>
+#include <string_view>
 
 myftp_head::myftp_head(MYFTP_HEAD_TYPE type, unsigned char status,
                        std::uint32_t length_host_endian)
@@ -60,7 +61,10 @@ MYFTP_HEAD_TYPE myftp_head::get_type() const { return m_type; }
 unsigned char myftp_head::get_status() const { return m_status; }
 std::uint32_t myftp_head::get_length() const { return ntohl(m_length); }
 std::uint32_t myftp_head::get_file_length() const { return get_length() - 12; }
-std::uint32_t myftp_head::get_file_name_length() const { return get_length() - 13; }
+std::uint32_t myftp_head::get_file_name_length() const
+{
+    return get_length() - 13;
+}
 
 void myftp_head::get(int fd_to_host)
 {

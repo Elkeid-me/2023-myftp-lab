@@ -4,11 +4,21 @@
 #include <cstddef>
 #include <cstdint>
 #include <string_view>
+#include <regex>
 
 constexpr uint64_t MAGIC_NUMBER_LENGTH{6};
 
 constexpr std::string_view MYFTP_PROTOCOL{"\xc1\xa1\x10"
-                                        "ftp"};
+                                          "ftp"};
+
+constexpr auto REGEX_FLAG{std::regex_constants::icase |
+                          std::regex_constants::ECMAScript |
+                          std::regex_constants::optimize};
+const std::regex PORT_PATTERN{"[0-9]", REGEX_FLAG};
+const std::regex IPv4_PATTERN{R"([0-9]{3}(\.[0-9]{3}){3})", REGEX_FLAG};
+const std::regex IPv6_PATTERN{R"(([0-9]|[a-f])(:([0-9]|[a-f])){7})",
+                              REGEX_FLAG};
+
 
 enum class MYFTP_HEAD_TYPE : unsigned char
 {
@@ -44,6 +54,7 @@ private:
 public:
     myftp_head(MYFTP_HEAD_TYPE type, unsigned char status,
                std::uint32_t length_host_endian);
+    myftp_head() = default;
 
     bool is_valid() const;
 
@@ -58,6 +69,18 @@ public:
 };
 
 const myftp_head
-    OPEN_CONNECTION_REPLY_HEAD(MYFTP_HEAD_TYPE::OPEN_CONNECTION_REPLY, 1, 12);
+    OPEN_CONNECTION_REPLY(MYFTP_HEAD_TYPE::OPEN_CONNECTION_REPLY, 1, 12);
+
+const myftp_head GET_REPLY_SUCCESS(MYFTP_HEAD_TYPE::GET_REPLY, 1, 12);
+const myftp_head GET_REPLY_FAIL(MYFTP_HEAD_TYPE::GET_REPLY, 0, 12);
+
+const myftp_head PUT_REPLY(MYFTP_HEAD_TYPE::PUT_REPLY, 1, 12);
+
+const myftp_head SHA_REPLAY_SUCCESS(MYFTP_HEAD_TYPE::SHA_REPLY, 1, 12);
+const myftp_head SHA_REPLAY_FAIL(MYFTP_HEAD_TYPE::SHA_REPLY, 0, 12);
+
+const myftp_head QUIT_REQUEST(MYFTP_HEAD_TYPE::QUIT_REQUEST, 1, 12);
+const myftp_head QUIT_REPLY(MYFTP_HEAD_TYPE::QUIT_REPLY, 1, 12);
+
 
 #endif
