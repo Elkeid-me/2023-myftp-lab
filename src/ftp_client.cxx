@@ -1,6 +1,7 @@
 #include "file_process.hxx"
 #include "socket.hxx"
 #include "tools.hxx"
+#include <csignal>
 #include <cstddef>
 #include <cstdio>
 #include <cstring>
@@ -54,6 +55,7 @@ int open_connection(const char *ip, const char *port);
 
 int main()
 {
+    std::signal(SIGPIPE, SIG_IGN);
     ftp_client_loop();
     return 0;
 }
@@ -119,7 +121,8 @@ void connected_function(int fd_to_server, const std::string_view &ip,
             is_connected = list(fd_to_server, buf);
             break;
         case COMMAND_TYPE::GET:
-
+            is_connected = download_file(fd_to_server, str_1, buf);
+            break;
         case COMMAND_TYPE::PUT:
             is_connected = upload_file(fd_to_server, str_1, buf);
             break;
@@ -295,7 +298,10 @@ bool upload_file(int fd_to_server, std::string_view file_name, char *buf)
         fs.read(buf, BUF_SIZE);
         std::size_t read_num{static_cast<size_t>(fs.gcount())};
         if (file_process::write(fd_to_server, buf, read_num) != read_num)
+        {
+            std::cout << 114514;
             goto upload_file_error;
+        }
         if (read_num < BUF_SIZE)
             break;
     }
@@ -320,6 +326,11 @@ bool download_file(int fd_to_server, std::string_view file_name, char *buf)
     if (!head_buf.send(fd_to_server))
         goto download_file_error;
 
+    if (file_process::write(fd_to_server, file_name_str.c_str(),
+                            file_name_str.length() + 1) !=
+        file_name_str.length() + 1)
+        goto download_file_error;
+
     if (!head_buf.get(fd_to_server) ||
         head_buf.get_type() != MYFTP_HEAD_TYPE::GET_REPLY)
         goto download_file_error;
@@ -337,6 +348,7 @@ bool download_file(int fd_to_server, std::string_view file_name, char *buf)
         while (true)
         {
             ssize_t read_num{file_process::read(fd_to_server, buf, BUF_SIZE)};
+
             fs.write(buf, read_num);
             if (read_num < BUF_SIZE)
                 break;

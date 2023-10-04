@@ -16,8 +16,6 @@
 #include <sys/types.h>
 #include <thread>
 
-// std::fstream server_log("ftp_server.log");
-
 bool check_ip(const char *ip, const char *port);
 void ftp_server_thread_function(int fd_to_client);
 void quit_connection(int fd_to_client);
@@ -49,8 +47,6 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    // server_log << "IP and Port Checked: " << ip << ":" << port << std::endl;
-
     int listen_fd{socket_process::open_listen_fd(port)};
 
     if (listen_fd < 0)
@@ -64,13 +60,8 @@ int main(int argc, char *argv[])
             listen_fd, reinterpret_cast<sockaddr *>(&client_addr),
             &client_len)};
 
-        // server_log << "Client Connected With File Description " <<
-        // fd_to_client << std::endl;
-
         std::thread new_thread(ftp_server_thread_function, fd_to_client);
         new_thread.detach();
-
-        // ftp_server_thread_function(fd_to_client);
     }
 
     return 0;
@@ -165,7 +156,7 @@ bool upload_file(int fd_to_client, char *buf, std::uint32_t file_name_length)
         ssize_t read_num{file_process::read(fd_to_client, buf, BUF_SIZE)};
 
         fs.write(buf, read_num);
-        if (read_num < BUF_SIZE)
+        if (read_num < 0)
             break;
     }
 
