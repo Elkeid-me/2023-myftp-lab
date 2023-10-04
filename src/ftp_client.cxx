@@ -131,7 +131,6 @@ void connected_function(int fd_to_server, const std::string_view &ip,
             break;
         case COMMAND_TYPE::QUIT:
             is_connected = quit(fd_to_server);
-            std::cout << "Quit connection.\n";
             return;
         default:
             std::cout << "Invalid command.\n";
@@ -272,7 +271,9 @@ bool upload_file(int fd_to_server, std::string_view file_name, char *buf)
     }
 
     std::size_t file_size{std::filesystem::file_size(file_name_str)};
-    std::fstream fs(file_name_str, std::ios_base::in | std::ios_base::binary);
+    // std::fstream fs(file_name_str, std::ios_base::in |
+    // std::ios_base::binary);
+    std::FILE *fs{fopen(file_name_str.c_str(), "rb")};
 
     myftp_head head_buf(MYFTP_HEAD_TYPE::PUT_REQUEST, 1,
                         MYFTP_HEAD_SIZE + file_name_str.length() + 1);
@@ -295,8 +296,10 @@ bool upload_file(int fd_to_server, std::string_view file_name, char *buf)
 
     while (true)
     {
-        fs.read(buf, BUF_SIZE);
-        std::size_t read_num{static_cast<size_t>(fs.gcount())};
+
+        std::size_t read_num{fread(buf, sizeof(char), BUF_SIZE, fs)};
+        // fs.read(buf, BUF_SIZE);
+        // std::size_t read_num{static_cast<size_t>(fs.gcount())};
         if (file_process::write(fd_to_server, buf, read_num) != read_num)
         {
             std::cout << 114514;
@@ -306,6 +309,7 @@ bool upload_file(int fd_to_server, std::string_view file_name, char *buf)
             break;
     }
 
+    std::fclose(fs);
     return true;
 
 upload_file_error:
@@ -320,8 +324,6 @@ bool download_file(int fd_to_server, std::string_view file_name, char *buf)
 
     myftp_head head_buf(MYFTP_HEAD_TYPE::GET_REQUEST, 1,
                         MYFTP_HEAD_SIZE + file_name_str.length() + 1);
-
-    std::fstream fs(file_name_str, std::ios_base::out | std::ios_base::binary);
 
     if (!head_buf.send(fd_to_server))
         goto download_file_error;
@@ -345,14 +347,21 @@ bool download_file(int fd_to_server, std::string_view file_name, char *buf)
             head_buf.get_type() != MYFTP_HEAD_TYPE::FILE_DATA)
             goto download_file_error;
 
+        // std::fstream fs(file_name_str,
+        //                 std::ios_base::out | std::ios_base::binary);
+
+        std::FILE *fs{std::fopen(file_name_str.c_str(), "wb")};
+
         while (true)
         {
             ssize_t read_num{file_process::read(fd_to_server, buf, BUF_SIZE)};
-
-            fs.write(buf, read_num);
+            // fs.write(buf, read_num);
+            std::fwrite(buf, sizeof(char), read_num, fs);
             if (read_num < BUF_SIZE)
                 break;
         }
+
+        std::fclose(fs);
     }
 
     return true;

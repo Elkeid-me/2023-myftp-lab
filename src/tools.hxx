@@ -10,7 +10,7 @@ constexpr uint64_t MAGIC_NUMBER_LENGTH{6};
 
 constexpr std::string_view MYFTP_PROTOCOL{"\xc1\xa1\x10"
                                           "ftp"};
-constexpr std::size_t BUF_SIZE{1048576};
+constexpr std::size_t BUF_SIZE{16384};
 
 constexpr auto REGEX_FLAG{std::regex_constants::icase |
                           std::regex_constants::ECMAScript |
