@@ -1,6 +1,7 @@
 #include "file_process.hxx"
 #include "socket.hxx"
 #include "tools.hxx"
+#include <csignal>
 #include <cstddef>
 #include <cstdio>
 #include <filesystem>
@@ -32,6 +33,8 @@ void quit_connection(int fd_to_client);
 
 int main(int argc, char *argv[])
 {
+    std::signal(SIGPIPE, SIG_IGN);
+
     if (argc != 3)
     {
         std::cerr << "Usage: " << argv[0] << " <ip> <port>" << std::endl;
@@ -92,7 +95,8 @@ void ftp_server_thread_function(int fd_to_client)
 
     while (true)
     {
-        myftp_head_buf.get(fd_to_client);
+        if (!myftp_head_buf.get(fd_to_client))
+            return;
 
         switch (myftp_head_buf.get_type())
         {
@@ -115,14 +119,16 @@ void ftp_server_thread_function(int fd_to_client)
                                    myftp_head_buf.get_payload_length());
             break;
         case MYFTP_HEAD_TYPE::QUIT_REQUEST:
-        default:
             quit_connection(fd_to_client);
+            return;
+        default:
+            file_process::close(fd_to_client);
             return;
         }
 
         if (!is_successful)
         {
-            quit_connection(fd_to_client);
+            file_process::close(fd_to_client);
             return;
         }
     }
@@ -130,19 +136,24 @@ void ftp_server_thread_function(int fd_to_client)
 
 bool open_connection(int fd_to_client)
 {
-    OPEN_CONNECTION_REPLY.send(fd_to_client);
+    if (!OPEN_CONNECTION_REPLY.send(fd_to_client))
+        return false;
     return true;
 }
 
 bool upload_file(int fd_to_client, char *buf, std::uint32_t file_name_length)
 {
-    file_process::read(fd_to_client, buf, file_name_length);
+    if (file_process::read(fd_to_client, buf, file_name_length) !=
+        file_name_length)
+        return false;
     std::string_view path{buf, file_name_length - 1};
 
-    PUT_REPLY.send(fd_to_client);
+    if (!PUT_REPLY.send(fd_to_client))
+        return false;
 
     myftp_head tmp_head;
-    tmp_head.get(fd_to_client);
+    if (!tmp_head.get(fd_to_client))
+        return false;
 
     if (tmp_head.get_type() != MYFTP_HEAD_TYPE::FILE_DATA)
         return false;
@@ -153,7 +164,7 @@ bool upload_file(int fd_to_client, char *buf, std::uint32_t file_name_length)
 
     while (true)
     {
-        std::size_t read_num{file_process::read(fd_to_client, buf, BUF_SIZE)};
+        ssize_t read_num{file_process::read(fd_to_client, buf, BUF_SIZE)};
 
         fs.write(buf, read_num);
         if (read_num < BUF_SIZE)
@@ -165,13 +176,19 @@ bool upload_file(int fd_to_client, char *buf, std::uint32_t file_name_length)
 
 bool download_file(int fd_to_client, char *buf, std::uint32_t file_name_length)
 {
-    file_process::read(fd_to_client, buf, file_name_length);
+    if (file_process::read(fd_to_client, buf, file_name_length) !=
+        file_name_length)
+        return false;
     std::string_view path{buf, file_name_length - 1};
     if (!std::filesystem::exists(path))
-        GET_REPLY_FAIL.send(fd_to_client);
+    {
+        if (!GET_REPLY_FAIL.send(fd_to_client))
+            return false;
+    }
     else
     {
-        GET_REPLY_SUCCESS.send(fd_to_client);
+        if (!GET_REPLY_SUCCESS.send(fd_to_client))
+            return false;
 
         std::size_t file_size{std::filesystem::file_size(path)};
 
@@ -179,13 +196,15 @@ bool download_file(int fd_to_client, char *buf, std::uint32_t file_name_length)
 
         myftp_head get_reply(MYFTP_HEAD_TYPE::FILE_DATA, 1,
                              MYFTP_HEAD_SIZE + file_size);
-        get_reply.send(fd_to_client);
+        if (!get_reply.send(fd_to_client))
+            return false;
 
         while (true)
         {
             fs.read(buf, BUF_SIZE);
             std::size_t read_num{static_cast<size_t>(fs.gcount())};
-            file_process::write(fd_to_client, buf, read_num);
+            if (file_process::write(fd_to_client, buf, read_num) < 0)
+                return false;
             if (read_num < BUF_SIZE)
                 break;
         }
@@ -195,7 +214,7 @@ bool download_file(int fd_to_client, char *buf, std::uint32_t file_name_length)
 
 void quit_connection(int fd_to_client)
 {
-    QUIT_REPLY.send(fd_to_client);
+    bool make_gcc_happy{QUIT_REPLY.send(fd_to_client)};
     file_process::close(fd_to_client);
 }
 
@@ -213,8 +232,10 @@ bool list(int fd_to_client, char *buf)
             myftp_head list_reply(MYFTP_HEAD_TYPE::LIST_REPLY, 1,
                                   MYFTP_HEAD_SIZE + read_num + 1);
 
-            list_reply.send(fd_to_client);
-            file_process::write(fd_to_client, buf, read_num + 1);
+            if (!list_reply.send(fd_to_client))
+                return false;
+            if (file_process::write(fd_to_client, buf, read_num + 1) < 0)
+                return false;
         }
         pclose(read_fp);
     }
@@ -223,7 +244,9 @@ bool list(int fd_to_client, char *buf)
 
 bool sha256(int fd_to_client, char *buf, std::uint32_t file_name_length)
 {
-    file_process::read(fd_to_client, buf, file_name_length);
+    if (file_process::read(fd_to_client, buf, file_name_length) !=
+        file_name_length)
+        return false;
 
     std::string cmd{"sha256sum "};
     cmd += "\"";
@@ -234,7 +257,10 @@ bool sha256(int fd_to_client, char *buf, std::uint32_t file_name_length)
     path += buf;
 
     if (!std::filesystem::exists(path))
-        SHA_REPLAY_FAIL.send(fd_to_client);
+    {
+        if (!SHA_REPLAY_FAIL.send(fd_to_client))
+            return false;
+    }
     else
     {
         FILE *read_fp{popen(cmd.c_str(), "r")};
@@ -246,12 +272,15 @@ bool sha256(int fd_to_client, char *buf, std::uint32_t file_name_length)
             {
                 buf[read_num] = 0;
 
-                SHA_REPLAY_SUCCESS.send(fd_to_client);
+                if (!SHA_REPLAY_SUCCESS.send(fd_to_client))
+                    return false;
 
                 myftp_head sha_reply_head(MYFTP_HEAD_TYPE::FILE_DATA, 1,
                                           MYFTP_HEAD_SIZE + read_num + 1);
-                sha_reply_head.send(fd_to_client);
-                file_process::write(fd_to_client, buf, read_num + 1);
+                if (!sha_reply_head.send(fd_to_client))
+                    return false;
+                if (file_process::write(fd_to_client, buf, read_num + 1) < 0)
+                    return false;
             }
             pclose(read_fp);
         }

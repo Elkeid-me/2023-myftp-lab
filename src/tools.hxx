@@ -67,8 +67,8 @@ public:
     std::uint32_t get_length() const;
     std::uint32_t get_payload_length() const;
 
-    void get(int fd_to_host);
-    void send(int fd_to_host) const;
+    [[nodiscard]] bool get(int fd_to_host);
+    [[nodiscard]] bool send(int fd_to_host) const;
 };
 
 constexpr std::size_t MYFTP_HEAD_SIZE{sizeof(myftp_head)};

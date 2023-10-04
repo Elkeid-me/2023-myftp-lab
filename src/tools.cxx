@@ -3,6 +3,7 @@
 #include <arpa/inet.h>
 #include <iostream>
 #include <string_view>
+#include <sys/types.h>
 
 myftp_head::myftp_head(MYFTP_HEAD_TYPE type, unsigned char status,
                        std::uint32_t length_host_endian)
@@ -72,14 +73,14 @@ std::uint32_t myftp_head::get_payload_length() const
     return get_length() - MYFTP_HEAD_SIZE;
 }
 
-void myftp_head::get(int fd_to_host)
+[[nodiscard]] bool myftp_head::get(int fd_to_host)
 {
-    file_process::read(fd_to_host, reinterpret_cast<char *>(this),
-                       MYFTP_HEAD_SIZE);
+    return file_process::read(fd_to_host, reinterpret_cast<char *>(this),
+                              MYFTP_HEAD_SIZE) == MYFTP_HEAD_SIZE;
 }
 
-void myftp_head::send(int fd_to_host) const
+[[nodiscard]] bool myftp_head::send(int fd_to_host) const
 {
-    file_process::write(fd_to_host, reinterpret_cast<const char *>(this),
-                        MYFTP_HEAD_SIZE);
+    return file_process::write(fd_to_host, reinterpret_cast<const char *>(this),
+                               MYFTP_HEAD_SIZE) == MYFTP_HEAD_SIZE;
 }
