@@ -24,6 +24,8 @@ static_assert(sizeof(unsigned char) == 1);
 
 enum class MYFTP_HEAD_TYPE : unsigned char
 {
+    INVALID = 0x00,
+
     OPEN_CONNECTION_REQUEST = 0xa1,
     OPEN_CONNECTION_REPLY = 0xa2,
 
@@ -52,13 +54,13 @@ private:
     MYFTP_HEAD_TYPE m_type;
     unsigned char m_status;
     std::uint32_t m_length;
+    bool is_valid() const;
 
 public:
     myftp_head(MYFTP_HEAD_TYPE type, unsigned char status,
                std::uint32_t length_host_endian);
     myftp_head() = default;
 
-    bool is_valid() const;
 
     MYFTP_HEAD_TYPE get_type() const;
     unsigned char get_status() const;
@@ -72,8 +74,14 @@ public:
 constexpr std::size_t MYFTP_HEAD_SIZE{sizeof(myftp_head)};
 static_assert(MYFTP_HEAD_SIZE == 12);
 
+const myftp_head
+    OPEN_CONNECTION_REQUEST(MYFTP_HEAD_TYPE::OPEN_CONNECTION_REQUEST, 1,
+                            MYFTP_HEAD_SIZE);
 const myftp_head OPEN_CONNECTION_REPLY(MYFTP_HEAD_TYPE::OPEN_CONNECTION_REPLY,
                                        1, MYFTP_HEAD_SIZE);
+
+const myftp_head LIST_REQUEST(MYFTP_HEAD_TYPE::LIST_REQUEST, 1,
+                              MYFTP_HEAD_SIZE);
 
 const myftp_head GET_REPLY_SUCCESS(MYFTP_HEAD_TYPE::GET_REPLY, 1,
                                    MYFTP_HEAD_SIZE);

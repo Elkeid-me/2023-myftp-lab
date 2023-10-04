@@ -15,16 +15,20 @@
 #include <sys/types.h>
 #include <thread>
 
-std::fstream server_log("ftp_server.log");
+// std::fstream server_log("ftp_server.log");
 
 bool check_ip(const char *ip, const char *port);
 void ftp_server_thread_function(int fd_to_client);
-void open_connection(int fd_to_client);
 void quit_connection(int fd_to_client);
-void list(int fd_to_client, char *buf);
-void sha256(int fd_to_client, char *buf, std::uint32_t file_name_length);
-void upload_file(int fd_to_client, char *buf, std::uint32_t file_name_length);
-void download_file(int fd_to_client, char *buf, std::uint32_t file_name_length);
+
+[[nodiscard]] bool open_connection(int fd_to_client);
+[[nodiscard]] bool list(int fd_to_client, char *buf);
+[[nodiscard]] bool sha256(int fd_to_client, char *buf,
+                          std::uint32_t file_name_length);
+[[nodiscard]] bool upload_file(int fd_to_client, char *buf,
+                               std::uint32_t file_name_length);
+[[nodiscard]] bool download_file(int fd_to_client, char *buf,
+                                 std::uint32_t file_name_length);
 
 int main(int argc, char *argv[])
 {
@@ -42,7 +46,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    server_log << "IP and Port Checked: " << ip << ":" << port << std::endl;
+    // server_log << "IP and Port Checked: " << ip << ":" << port << std::endl;
 
     int listen_fd{socket_process::open_listen_fd(port)};
 
@@ -57,12 +61,13 @@ int main(int argc, char *argv[])
             listen_fd, reinterpret_cast<sockaddr *>(&client_addr),
             &client_len)};
 
-        server_log << "Client Connected With File Description " << fd_to_client << std::endl;
+        // server_log << "Client Connected With File Description " <<
+        // fd_to_client << std::endl;
 
-        // std::thread new_thread(ftp_server_thread_function, fd_to_client);
-        // new_thread.detach();
+        std::thread new_thread(ftp_server_thread_function, fd_to_client);
+        new_thread.detach();
 
-        ftp_server_thread_function(fd_to_client);
+        // ftp_server_thread_function(fd_to_client);
     }
 
     return 0;
@@ -83,49 +88,53 @@ void ftp_server_thread_function(int fd_to_client)
     myftp_head myftp_head_buf;
     char file_buf[BUF_SIZE];
 
+    bool is_successful{false};
+
     while (true)
     {
         myftp_head_buf.get(fd_to_client);
 
-        if (!myftp_head_buf.is_valid())
-        {
-            quit_connection(fd_to_client);
-            return;
-        }
-
         switch (myftp_head_buf.get_type())
         {
         case MYFTP_HEAD_TYPE::OPEN_CONNECTION_REQUEST:
-            open_connection(fd_to_client);
+            is_successful = open_connection(fd_to_client);
             break;
         case MYFTP_HEAD_TYPE::LIST_REQUEST:
-            list(fd_to_client, file_buf);
+            is_successful = list(fd_to_client, file_buf);
             break;
         case MYFTP_HEAD_TYPE::GET_REQUEST:
-            download_file(fd_to_client, file_buf,
-                          myftp_head_buf.get_payload_length());
+            is_successful = download_file(fd_to_client, file_buf,
+                                          myftp_head_buf.get_payload_length());
             break;
         case MYFTP_HEAD_TYPE::PUT_REQUEST:
-            upload_file(fd_to_client, file_buf,
-                        myftp_head_buf.get_payload_length());
+            is_successful = upload_file(fd_to_client, file_buf,
+                                        myftp_head_buf.get_payload_length());
             break;
         case MYFTP_HEAD_TYPE::SHA_REQUEST:
-            sha256(fd_to_client, file_buf, myftp_head_buf.get_payload_length());
+            is_successful = sha256(fd_to_client, file_buf,
+                                   myftp_head_buf.get_payload_length());
             break;
         case MYFTP_HEAD_TYPE::QUIT_REQUEST:
         default:
             quit_connection(fd_to_client);
             return;
         }
+
+        if (!is_successful)
+        {
+            quit_connection(fd_to_client);
+            return;
+        }
     }
 }
 
-void open_connection(int fd_to_client)
+bool open_connection(int fd_to_client)
 {
     OPEN_CONNECTION_REPLY.send(fd_to_client);
+    return true;
 }
 
-void upload_file(int fd_to_client, char *buf, std::uint32_t file_name_length)
+bool upload_file(int fd_to_client, char *buf, std::uint32_t file_name_length)
 {
     file_process::read(fd_to_client, buf, file_name_length);
     std::string_view path{buf, file_name_length - 1};
@@ -134,6 +143,9 @@ void upload_file(int fd_to_client, char *buf, std::uint32_t file_name_length)
 
     myftp_head tmp_head;
     tmp_head.get(fd_to_client);
+
+    if (tmp_head.get_type() != MYFTP_HEAD_TYPE::FILE_DATA)
+        return false;
 
     std::size_t file_size{tmp_head.get_payload_length()};
 
@@ -147,9 +159,11 @@ void upload_file(int fd_to_client, char *buf, std::uint32_t file_name_length)
         if (read_num < BUF_SIZE)
             break;
     }
+
+    return true;
 }
 
-void download_file(int fd_to_client, char *buf, std::uint32_t file_name_length)
+bool download_file(int fd_to_client, char *buf, std::uint32_t file_name_length)
 {
     file_process::read(fd_to_client, buf, file_name_length);
     std::string_view path{buf, file_name_length - 1};
@@ -176,6 +190,7 @@ void download_file(int fd_to_client, char *buf, std::uint32_t file_name_length)
                 break;
         }
     }
+    return true;
 }
 
 void quit_connection(int fd_to_client)
@@ -184,7 +199,7 @@ void quit_connection(int fd_to_client)
     file_process::close(fd_to_client);
 }
 
-void list(int fd_to_client, char *buf)
+bool list(int fd_to_client, char *buf)
 {
     FILE *read_fp{popen("ls", "r")};
     if (read_fp != nullptr)
@@ -203,9 +218,10 @@ void list(int fd_to_client, char *buf)
         }
         pclose(read_fp);
     }
+    return true;
 }
 
-void sha256(int fd_to_client, char *buf, std::uint32_t file_name_length)
+bool sha256(int fd_to_client, char *buf, std::uint32_t file_name_length)
 {
     file_process::read(fd_to_client, buf, file_name_length);
 
@@ -240,4 +256,5 @@ void sha256(int fd_to_client, char *buf, std::uint32_t file_name_length)
             pclose(read_fp);
         }
     }
+    return true;
 }

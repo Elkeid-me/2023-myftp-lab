@@ -59,7 +59,12 @@ bool myftp_head::is_valid() const
     return true;
 }
 
-MYFTP_HEAD_TYPE myftp_head::get_type() const { return m_type; }
+MYFTP_HEAD_TYPE myftp_head::get_type() const
+{
+    if (is_valid())
+        return m_type;
+    return MYFTP_HEAD_TYPE::INVALID;
+}
 unsigned char myftp_head::get_status() const { return m_status; }
 std::uint32_t myftp_head::get_length() const { return ntohl(m_length); }
 std::uint32_t myftp_head::get_payload_length() const
