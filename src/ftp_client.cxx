@@ -28,8 +28,11 @@ enum class COMMAND_TYPE
 };
 
 const std::regex LIST_COMMAND_PATTERN{R"(ls\s*)"};
-const std::regex OPEN_COMMAND_PATTERN{R"(open (\s+) (\s+)\s)"};
+const std::regex OPEN_COMMAND_PATTERN{R"(open (\S+) (\S+)\s*)"};
 const std::regex SHA_COMMAND_PATTERN{R"(sha256 (.+))"};
+const std::regex QUIT_COMMAND_PATTERN{R"(quit\s*)"};
+
+void ftp_client_loop();
 
 std::tuple<COMMAND_TYPE, std::string_view, std::string_view>
 parse_command(std::string_view command);
@@ -42,7 +45,7 @@ bool sha256(int fd_to_server, std::string_view file_name, char *buf);
 
 int main()
 {
-    std::cerr << "hello from ftp client" << std::endl;
+    ftp_client_loop();
     return 0;
 }
 
@@ -87,8 +90,16 @@ void ftp_client_loop()
             is_connected = sha256(fd_to_server, str_1, buf);
             break;
         case COMMAND_TYPE::QUIT:
-            is_connected = quit(fd_to_server);
-            break;
+            if (is_connected)
+            {
+                is_connected = quit(fd_to_server);
+                break;
+            }
+            else
+            {
+                std::cout << "Quit myftp client.\n";
+                return;
+            }
         case COMMAND_TYPE::INVALID:
             std::cout << "Invalid command.";
             break;
@@ -202,5 +213,29 @@ std::tuple<COMMAND_TYPE, std::string_view, std::string_view>
 parse_command(std::string_view command)
 {
     std::cmatch m;
-    if (std::regex_match(command, SHA_COMMAND_PATTERN, m))
+    if (std::regex_match(command.begin(), command.end(), m,
+                         SHA_COMMAND_PATTERN))
+        return {COMMAND_TYPE::SHA,
+                {m[1].first, static_cast<std::size_t>(m[1].length())},
+                {nullptr, 0}};
+
+    if (std::regex_match(command.begin(), command.end(), m,
+                         OPEN_COMMAND_PATTERN))
+    {
+        if (!std::regex_match(m[1].first, m[1].second, IPv4_PATTERN) &&
+                !std::regex_match(m[1].first, m[1].second, IPv6_PATTERN) ||
+            !std::regex_match(m[2].first, m[2].second, PORT_PATTERN))
+            return {COMMAND_TYPE::INVALID, {nullptr, 0}, {nullptr, 0}};
+        return {COMMAND_TYPE::SHA,
+                {m[1].first, static_cast<std::size_t>(m[1].length())},
+                {m[2].first, static_cast<std::size_t>(m[2].length())}};
+    }
+    if (std::regex_match(command.begin(), command.end(), m,
+                         LIST_COMMAND_PATTERN))
+        return {COMMAND_TYPE::LIST, {nullptr, 0}, {nullptr, 0}};
+    if (std::regex_match(command.begin(), command.end(), m,
+                         QUIT_COMMAND_PATTERN))
+        return {COMMAND_TYPE::QUIT, {nullptr, 0}, {nullptr, 0}};
+
+    return {COMMAND_TYPE::INVALID, {nullptr, 0}, {nullptr, 0}};
 }
