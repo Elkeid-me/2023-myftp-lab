@@ -1,6 +1,7 @@
 #include "tools.hxx"
 #include "file_process.hxx"
 #include <arpa/inet.h>
+#include <cstring>
 #include <iostream>
 #include <string_view>
 #include <sys/types.h>
@@ -10,6 +11,15 @@ myftp_head::myftp_head(MYFTP_HEAD_TYPE type, unsigned char status,
     : m_protocol{'\xc1', '\xa1', '\x10', 'f', 't', 'p'}, m_type{type},
       m_status{status}, m_length{htonl(length_host_endian)}
 {
+}
+
+void myftp_head::pack(MYFTP_HEAD_TYPE type, unsigned char status,
+                      std::uint32_t length_host_endian)
+{
+    std::memcpy(m_protocol, MYFTP_PROTOCOL.data(), MAGIC_NUMBER_LENGTH);
+    m_type = type;
+    m_status = status;
+    m_length = htonl(length_host_endian);
 }
 
 bool myftp_head::is_valid() const

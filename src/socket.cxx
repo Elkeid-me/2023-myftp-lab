@@ -15,7 +15,7 @@ static void set_socket_option(int s, int level, int optname, const void *optval,
     int rc;
 
     if ((rc = setsockopt(s, level, optname, optval, optlen)) < 0)
-        unix_error("Setsockopt error");
+        error_handle::unix_error("Setsockopt error");
 }
 
 static addrinfo *get_addr_info(const char *host, const char *service,
@@ -27,7 +27,7 @@ static addrinfo *get_addr_info(const char *host, const char *service,
     if (ecode == 0)
         return result;
 
-    gai_error(ecode, "Function `getaddrinfo' error");
+    error_handle::gai_error(ecode, "Function `getaddrinfo' error");
     return nullptr;
 }
 
@@ -107,7 +107,7 @@ namespace socket_process
         int rc;
 
         if ((rc = ::open_listen_fd(port)) < 0)
-            unix_error("Open_listenfd error");
+            error_handle::unix_error("Open_listenfd error");
         return rc;
     }
 
@@ -116,7 +116,7 @@ namespace socket_process
         int rc;
 
         if ((rc = ::open_client_fd(hostname, port)) < 0)
-            unix_error("Open_clientfd error");
+            error_handle::unix_error("Open_clientfd error");
         return rc;
     }
 
@@ -125,7 +125,7 @@ namespace socket_process
         int rc;
 
         if ((rc = ::accept(s, addr, addrlen)) < 0)
-            unix_error("Accept error");
+            error_handle::unix_error("Accept error");
         return rc;
     }
 }

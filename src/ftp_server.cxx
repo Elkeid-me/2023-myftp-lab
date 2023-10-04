@@ -152,10 +152,8 @@ bool upload_file(int fd_to_client, char *buf, std::uint32_t file_name_length)
         return false;
 
     myftp_head tmp_head;
-    if (!tmp_head.get(fd_to_client))
-        return false;
-
-    if (tmp_head.get_type() != MYFTP_HEAD_TYPE::FILE_DATA)
+    if (!tmp_head.get(fd_to_client) ||
+        tmp_head.get_type() != MYFTP_HEAD_TYPE::FILE_DATA)
         return false;
 
     std::size_t file_size{tmp_head.get_payload_length()};
@@ -196,6 +194,7 @@ bool download_file(int fd_to_client, char *buf, std::uint32_t file_name_length)
 
         myftp_head get_reply(MYFTP_HEAD_TYPE::FILE_DATA, 1,
                              MYFTP_HEAD_SIZE + file_size);
+
         if (!get_reply.send(fd_to_client))
             return false;
 
@@ -203,7 +202,7 @@ bool download_file(int fd_to_client, char *buf, std::uint32_t file_name_length)
         {
             fs.read(buf, BUF_SIZE);
             std::size_t read_num{static_cast<size_t>(fs.gcount())};
-            if (file_process::write(fd_to_client, buf, read_num) < 0)
+            if (file_process::write(fd_to_client, buf, read_num) != read_num)
                 return false;
             if (read_num < BUF_SIZE)
                 break;
@@ -234,7 +233,8 @@ bool list(int fd_to_client, char *buf)
 
             if (!list_reply.send(fd_to_client))
                 return false;
-            if (file_process::write(fd_to_client, buf, read_num + 1) < 0)
+            if (file_process::write(fd_to_client, buf, read_num + 1) !=
+                read_num + 1)
                 return false;
         }
         pclose(read_fp);
@@ -279,7 +279,8 @@ bool sha256(int fd_to_client, char *buf, std::uint32_t file_name_length)
                                           MYFTP_HEAD_SIZE + read_num + 1);
                 if (!sha_reply_head.send(fd_to_client))
                     return false;
-                if (file_process::write(fd_to_client, buf, read_num + 1) < 0)
+                if (file_process::write(fd_to_client, buf, read_num + 1) !=
+                    read_num + 1)
                     return false;
             }
             pclose(read_fp);
