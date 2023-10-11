@@ -62,7 +62,7 @@ public:
     myftp_head() = default;
 
     void pack(MYFTP_HEAD_TYPE type, unsigned char status,
-               std::uint32_t length_host_endian);
+              std::uint32_t length_host_endian);
 
     MYFTP_HEAD_TYPE get_type() const;
     unsigned char get_status() const;

@@ -48,8 +48,8 @@ static int open_listen_fd(const char *port)
         if ((listen_fd = socket(ptr->ai_family, ptr->ai_socktype,
                                 ptr->ai_protocol)) >= 0)
         {
-            set_socket_option(listen_fd, SOL_SOCKET, SO_REUSEADDR, &socket_process::optval,
-                              sizeof(int));
+            set_socket_option(listen_fd, SOL_SOCKET, SO_REUSEADDR,
+                              &socket_process::optval, sizeof(int));
 
             if (bind(listen_fd, ptr->ai_addr, ptr->ai_addrlen) == 0)
                 break;
