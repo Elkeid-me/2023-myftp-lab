@@ -29,6 +29,7 @@ void quit_connection(int fd_to_client);
 int main(int argc, char *argv[])
 {
     std::signal(SIGPIPE, SIG_IGN);
+    stderr = stdout;
 
     if (argc != 3)
     {
@@ -168,7 +169,7 @@ bool download_file(int fd_to_client, char *buf, std::uint32_t file_name_length)
         file_name_length)
         return false;
     std::string_view path{buf, file_name_length - 1};
-    if (!std::filesystem::exists(path))
+    if (!std::filesystem::is_regular_file(path))
     {
         if (!GET_REPLY_FAIL.send(fd_to_client))
             return false;
@@ -246,7 +247,7 @@ bool sha256(int fd_to_client, char *buf, std::uint32_t file_name_length)
     std::string path{"./"};
     path += buf;
 
-    if (!std::filesystem::exists(path))
+    if (!std::filesystem::is_regular_file(path))
     {
         if (!SHA_REPLAY_FAIL.send(fd_to_client))
             return false;
