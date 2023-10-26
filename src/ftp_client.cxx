@@ -261,7 +261,7 @@ bool upload_file(int fd_to_server, std::string_view file_name, char *buf)
 {
     std::string file_name_str(file_name);
 
-    if (!std::filesystem::exists(file_name_str))
+    if (!std::filesystem::is_regular_file(file_name_str))
     {
         std::cout << "Local file `" << file_name_str << "' does not exist.\n";
         return true;
@@ -295,10 +295,8 @@ bool upload_file(int fd_to_server, std::string_view file_name, char *buf)
         std::size_t read_num{fread(buf, sizeof(char), BUF_SIZE, fs)};
 
         if (file_process::write(fd_to_server, buf, read_num) != read_num)
-        {
-            std::cout << 114514;
             goto upload_file_error;
-        }
+
         if (read_num < BUF_SIZE)
             break;
     }
