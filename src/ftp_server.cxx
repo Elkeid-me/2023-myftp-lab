@@ -29,7 +29,6 @@ void quit_connection(int fd_to_client);
 int main(int argc, char *argv[])
 {
     std::signal(SIGPIPE, SIG_IGN);
-    stderr = stdout;
 
     if (argc != 3)
     {
