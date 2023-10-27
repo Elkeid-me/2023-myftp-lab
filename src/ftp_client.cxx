@@ -128,7 +128,7 @@ void connected_function(int fd_to_server, const std::string_view &ip,
             break;
         case COMMAND_TYPE::QUIT:
             is_connected = quit(fd_to_server);
-            return;
+            break;
         default:
             std::cout << "Invalid command.\n";
             break;
@@ -168,7 +168,7 @@ open_connection_error:
     return -1;
 }
 
-bool sha256(int fd_to_server, std::string_view file_name, char *buf)
+[[nodiscard]] bool sha256(int fd_to_server, std::string_view file_name, char *buf)
 {
     myftp_head head_buf(MYFTP_HEAD_TYPE::SHA_REQUEST, 1,
                         MYFTP_HEAD_SIZE + file_name.length() + 1);
@@ -209,7 +209,7 @@ sha256_error:
     return false;
 }
 
-bool list(int fd_to_server, char *buf)
+[[nodiscard]] bool list(int fd_to_server, char *buf)
 {
 
     myftp_head head_buf;
@@ -235,7 +235,7 @@ list_error:
     return false;
 }
 
-bool quit(int fd_to_server)
+[[nodiscard]] bool quit(int fd_to_server)
 {
     myftp_head head_buf;
 
@@ -255,7 +255,7 @@ quit_error:
     return false;
 }
 
-bool upload_file(int fd_to_server, std::string_view file_name, char *buf)
+[[nodiscard]] bool upload_file(int fd_to_server, std::string_view file_name, char *buf)
 {
     std::string file_name_str(file_name);
 
@@ -296,7 +296,7 @@ upload_file_error:
     return false;
 }
 
-bool download_file(int fd_to_server, std::string_view file_name, char *buf)
+[[nodiscard]] bool download_file(int fd_to_server, std::string_view file_name, char *buf)
 {
     std::string file_name_str(file_name);
 

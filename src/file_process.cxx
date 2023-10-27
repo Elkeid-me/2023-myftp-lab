@@ -7,8 +7,8 @@
 
 namespace file_process
 {
-
-    static ssize_t robust_write(int fd, const char *buf, std::size_t size)
+    [[nodiscard]] static ssize_t robust_write(int fd, const char *buf,
+                                              std::size_t size)
     {
         std::size_t n_written_bytes{0};
         while (n_written_bytes != size)
@@ -28,7 +28,8 @@ namespace file_process
         return n_written_bytes;
     }
 
-    static ssize_t robust_read(int fd, char *buf, const std::size_t size)
+    [[nodiscard]] static ssize_t robust_read(int fd, char *buf,
+                                             const std::size_t size)
     {
         std::size_t n_read_bytes{0};
         while (n_read_bytes != size)
