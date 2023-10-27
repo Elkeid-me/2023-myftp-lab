@@ -6,7 +6,7 @@
 #include <regex>
 #include <string_view>
 
-constexpr uint64_t MAGIC_NUMBER_LENGTH{6};
+constexpr std::size_t MAGIC_NUMBER_LENGTH{6};
 
 constexpr std::string_view MYFTP_PROTOCOL{"\xc1\xa1\x10"
                                           "ftp"};
@@ -20,9 +20,7 @@ const std::regex IPv4_PATTERN{R"([0-9]{1,3}(\.[0-9]{1,3}){3})", REGEX_FLAG};
 const std::regex IPv6_PATTERN{R"(([0-9]|[a-f])(:([0-9]|[a-f])){7})",
                               REGEX_FLAG};
 
-static_assert(sizeof(unsigned char) == 1);
-
-enum class MYFTP_HEAD_TYPE : unsigned char
+enum class MYFTP_HEAD_TYPE : std::uint8_t
 {
     INVALID = 0x00,
 
@@ -52,20 +50,20 @@ class [[gnu::packed]] myftp_head
 private:
     char m_protocol[MAGIC_NUMBER_LENGTH];
     MYFTP_HEAD_TYPE m_type;
-    unsigned char m_status;
+    std::uint8_t m_status;
     std::uint32_t m_length;
     bool is_valid() const;
 
 public:
-    myftp_head(MYFTP_HEAD_TYPE type, unsigned char status,
+    myftp_head(MYFTP_HEAD_TYPE type, std::uint8_t status,
                std::uint32_t length_host_endian);
     myftp_head() = default;
 
-    void pack(MYFTP_HEAD_TYPE type, unsigned char status,
+    void pack(MYFTP_HEAD_TYPE type, std::uint8_t status,
               std::uint32_t length_host_endian);
 
     MYFTP_HEAD_TYPE get_type() const;
-    unsigned char get_status() const;
+    std::uint8_t get_status() const;
     std::uint32_t get_length() const;
     std::uint32_t get_payload_length() const;
 
@@ -75,6 +73,11 @@ public:
 
 constexpr std::size_t MYFTP_HEAD_SIZE{sizeof(myftp_head)};
 static_assert(MYFTP_HEAD_SIZE == 12);
+
+[[nodiscard]] bool send_file(int fd_to_host, const char *path, char *buf,
+                             std::size_t size);
+[[nodiscard]] bool receive_file(int fd_to_host, const char *path, char *buf,
+                                std::size_t size);
 
 const myftp_head
     OPEN_CONNECTION_REQUEST(MYFTP_HEAD_TYPE::OPEN_CONNECTION_REQUEST, 1,

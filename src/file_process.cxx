@@ -1,3 +1,4 @@
+#include "file_process.hxx"
 #include "error_handle.hxx"
 #include <cerrno>
 #include <cstddef>
@@ -5,25 +6,55 @@
 
 namespace file_process
 {
+
+    static ssize_t robust_write(int fd, const char *buf, std::size_t size)
+    {
+        std::size_t n_written_bytes{0};
+        while (n_written_bytes != size)
+        {
+            ssize_t n_written{
+                ::write(fd, buf + n_written_bytes, size - n_written_bytes)};
+            if (n_written < 0)
+                return n_written;
+
+            n_written_bytes += n_written;
+        }
+        return n_written_bytes;
+    }
+
+    static ssize_t robust_read(int fd, char *buf, const std::size_t size)
+    {
+        std::size_t n_read_bytes{0};
+        while (n_read_bytes != size)
+        {
+            ssize_t n_read{::read(fd, buf + n_read_bytes, size - n_read_bytes)};
+            if (n_read < 0)
+                return n_read;
+
+            n_read_bytes += n_read;
+        }
+        return n_read_bytes;
+    }
+
     void close(int fd)
     {
         if (::close(fd) == -1)
             error_handle::unix_error("Function `close' error");
     }
 
-    [[nodiscard]] ssize_t read(int fd, char *buf, std::size_t size)
+    [[nodiscard]] std::size_t read(int fd, char *buf, std::size_t size)
     {
         ssize_t ret{::read(fd, buf, size)};
         if (ret < 0)
             error_handle::unix_error("Function `read' error");
-        return ret;
+        return static_cast<std::size_t>(ret);
     }
 
-    [[nodiscard]] ssize_t write(int fd, const char *buf, std::size_t size)
+    [[nodiscard]] std::size_t write(int fd, const char *buf, std::size_t size)
     {
-        ssize_t ret{::write(fd, buf, size)};
+        ssize_t ret{robust_write(fd, buf, size)};
         if (ret < 0)
             error_handle::unix_error("Function `write' error");
-        return ret;
+        return static_cast<std::size_t>(ret);
     }
 }

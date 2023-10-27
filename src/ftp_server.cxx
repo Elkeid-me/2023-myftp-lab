@@ -146,18 +146,20 @@ bool upload_file(int fd_to_client, char *buf, std::uint32_t file_name_length)
 
     std::size_t file_size{tmp_head.get_payload_length()};
 
-    std::FILE *fs{std::fopen(path.data(), "wb")};
+    // std::FILE *fs{std::fopen(path.data(), "wb")};
 
-    while (true)
-    {
-        ssize_t read_num{file_process::read(fd_to_client, buf, BUF_SIZE)};
+    // while (true)
+    // {
+    //     ssize_t read_num{file_process::read(fd_to_client, buf, BUF_SIZE)};
 
-        std::fwrite(buf, sizeof(char), read_num, fs);
-        if (read_num < BUF_SIZE)
-            break;
-    }
+    //     std::fwrite(buf, sizeof(char), read_num, fs);
+    //     if (read_num < BUF_SIZE)
+    //         break;
+    // }
 
-    std::fclose(fs);
+    // std::fclose(fs);
+    if (!receive_file(fd_to_client, path.data(), buf, file_size))
+        return false;
 
     return true;
 }
@@ -180,23 +182,27 @@ bool download_file(int fd_to_client, char *buf, std::uint32_t file_name_length)
 
         std::size_t file_size{std::filesystem::file_size(path)};
 
-        std::FILE *fs{std::fopen(path.data(), "rb")};
+        // std::FILE *fs{std::fopen(path.data(), "rb")};
         myftp_head get_reply(MYFTP_HEAD_TYPE::FILE_DATA, 1,
                              MYFTP_HEAD_SIZE + file_size);
 
         if (!get_reply.send(fd_to_client))
             return false;
 
-        while (true)
-        {
-            std::size_t read_num{std::fread(buf, sizeof(char), BUF_SIZE, fs)};
-            if (file_process::write(fd_to_client, buf, read_num) != read_num)
-                return false;
-            if (read_num < BUF_SIZE)
-                break;
-        }
+        // while (true)
+        // {
+        //     std::size_t read_num{std::fread(buf, sizeof(char), BUF_SIZE,
+        //     fs)}; if (file_process::write(fd_to_client, buf, read_num) !=
+        //     read_num)
+        //         return false;
+        //     if (read_num < BUF_SIZE)
+        //         break;
+        // }
 
-        std::fclose(fs);
+        // std::fclose(fs);
+
+        if (!send_file(fd_to_client, path.data(), buf, file_size))
+            return false;
     }
     return true;
 }

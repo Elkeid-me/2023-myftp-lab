@@ -205,7 +205,6 @@ bool sha256(int fd_to_server, std::string_view file_name, char *buf)
     return true;
 
 sha256_error:
-    file_process::close(fd_to_server);
     std::cout << "Sha256sum file error.\n";
     return false;
 }
@@ -232,7 +231,6 @@ bool list(int fd_to_server, char *buf)
     return true;
 
 list_error:
-    file_process::close(fd_to_server);
     std::cout << "List file error.\n";
     return false;
 }
@@ -250,10 +248,10 @@ bool quit(int fd_to_server)
     if (head_buf.get_type() == MYFTP_HEAD_TYPE::QUIT_REPLY)
         std::cout << "Quit successfully.\n";
     else
-        std::cout << "Quit connection error.\n";
+        goto quit_error;
 
 quit_error:
-    file_process::close(fd_to_server);
+    std::cout << "Quit connection error.\n";
     return false;
 }
 
@@ -269,7 +267,7 @@ bool upload_file(int fd_to_server, std::string_view file_name, char *buf)
 
     std::size_t file_size{std::filesystem::file_size(file_name_str)};
 
-    std::FILE *fs{fopen(file_name_str.c_str(), "rb")};
+    // std::FILE *fs{fopen(file_name_str.c_str(), "rb")};
 
     myftp_head head_buf(MYFTP_HEAD_TYPE::PUT_REQUEST, 1,
                         MYFTP_HEAD_SIZE + file_name_str.length() + 1);
@@ -290,23 +288,25 @@ bool upload_file(int fd_to_server, std::string_view file_name, char *buf)
     if (!head_buf.send(fd_to_server))
         goto upload_file_error;
 
-    while (true)
-    {
-        std::size_t read_num{fread(buf, sizeof(char), BUF_SIZE, fs)};
+    // while (true)
+    // {
+    //     std::size_t read_num{fread(buf, sizeof(char), BUF_SIZE, fs)};
 
-        if (file_process::write(fd_to_server, buf, read_num) != read_num)
-            goto upload_file_error;
+    //     if (file_process::write(fd_to_server, buf, read_num) != read_num)
+    //         goto upload_file_error;
 
-        if (read_num < BUF_SIZE)
-            break;
-    }
+    //     if (read_num < BUF_SIZE)
+    //         break;
+    // }
 
-    std::fclose(fs);
+    // std::fclose(fs);
+    if (!send_file(fd_to_server, file_name_str.c_str(), buf, file_size))
+        goto upload_file_error;
+
     return true;
 
 upload_file_error:
     std::cout << "Upload file error.\n";
-    file_process::close(fd_to_server);
     return false;
 }
 
@@ -339,24 +339,27 @@ bool download_file(int fd_to_server, std::string_view file_name, char *buf)
             head_buf.get_type() != MYFTP_HEAD_TYPE::FILE_DATA)
             goto download_file_error;
 
-        std::FILE *fs{std::fopen(file_name_str.c_str(), "wb")};
+        // std::FILE *fs{std::fopen(file_name_str.c_str(), "wb")};
 
-        while (true)
-        {
-            ssize_t read_num{file_process::read(fd_to_server, buf, BUF_SIZE)};
-            std::fwrite(buf, sizeof(char), read_num, fs);
-            if (read_num < BUF_SIZE)
-                break;
-        }
+        // while (true)
+        // {
+        //     ssize_t read_num{file_process::read(fd_to_server, buf,
+        //     BUF_SIZE)}; std::fwrite(buf, sizeof(char), read_num, fs); if
+        //     (read_num < BUF_SIZE)
+        //         break;
+        // }
 
-        std::fclose(fs);
+        // std::fclose(fs);
+
+        if (!receive_file(fd_to_server, file_name_str.c_str(), buf,
+                          head_buf.get_payload_length()))
+            goto download_file_error;
     }
 
     return true;
 
 download_file_error:
     std::cout << "Download file error.\n";
-    file_process::close(fd_to_server);
     return false;
 }
 

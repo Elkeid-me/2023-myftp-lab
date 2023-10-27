@@ -1,6 +1,7 @@
 #include "tools.hxx"
 #include "file_process.hxx"
 #include <arpa/inet.h>
+#include <cstdio>
 #include <cstring>
 #include <iostream>
 #include <string_view>
@@ -93,4 +94,62 @@ std::uint32_t myftp_head::get_payload_length() const
 {
     return file_process::write(fd_to_host, reinterpret_cast<const char *>(this),
                                MYFTP_HEAD_SIZE) == MYFTP_HEAD_SIZE;
+}
+
+[[nodiscard]] bool send_file(int fd_to_host, const char *path, char *buf,
+                             std::size_t file_size)
+{
+    std::FILE *file_stream{std::fopen(path, "rb")};
+    if (file_stream == nullptr)
+        return false;
+
+    std::size_t n_sended_byte{0};
+
+    while (n_sended_byte != file_size)
+    {
+        std::size_t nread_bytes{
+            std::fread(buf, sizeof(char), BUF_SIZE, file_stream)};
+
+        if (file_process::write(fd_to_host, buf, nread_bytes) < 0)
+        {
+            std::fclose(file_stream);
+            return false;
+        }
+
+        n_sended_byte += nread_bytes;
+    }
+
+    std::fclose(file_stream);
+    return true;
+}
+
+[[nodiscard]] bool receive_file(int fd_to_host, const char *path, char *buf,
+                                std::size_t file_size)
+{
+    std::FILE *file_stream{std::fopen(path, "wb")};
+    if (file_stream == nullptr)
+        return false;
+
+    std::size_t n_received_byte{0};
+
+    while (n_received_byte != file_size)
+    {
+        std::size_t nread_bytes{file_process::read(fd_to_host, buf, BUF_SIZE)};
+
+        if (nread_bytes < 0)
+            goto error;
+
+        if (std::fwrite(buf, sizeof(char), nread_bytes, file_stream) !=
+            nread_bytes)
+            goto error;
+
+        n_received_byte += nread_bytes;
+    }
+
+    std::fclose(file_stream);
+    return true;
+
+error:
+    std::fclose(file_stream);
+    return false;
 }
