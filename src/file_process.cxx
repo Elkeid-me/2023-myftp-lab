@@ -2,6 +2,7 @@
 #include "error_handle.hxx"
 #include <cerrno>
 #include <cstddef>
+#include <iostream>
 #include <unistd.h>
 
 namespace file_process
@@ -15,7 +16,12 @@ namespace file_process
             ssize_t n_written{
                 ::write(fd, buf + n_written_bytes, size - n_written_bytes)};
             if (n_written < 0)
-                return n_written;
+            {
+                if (errno == EINTR)
+                    n_written = 0;
+                else
+                    return n_written;
+            }
 
             n_written_bytes += n_written;
         }
@@ -29,7 +35,12 @@ namespace file_process
         {
             ssize_t n_read{::read(fd, buf + n_read_bytes, size - n_read_bytes)};
             if (n_read < 0)
-                return n_read;
+            {
+                if (errno == EINTR)
+                    n_read = 0;
+                else
+                    return n_read;
+            }
 
             n_read_bytes += n_read;
         }
@@ -44,7 +55,7 @@ namespace file_process
 
     [[nodiscard]] std::size_t read(int fd, char *buf, std::size_t size)
     {
-        ssize_t ret{::read(fd, buf, size)};
+        ssize_t ret{robust_read(fd, buf, size)};
         if (ret < 0)
             error_handle::unix_error("Function `read' error");
         return static_cast<std::size_t>(ret);

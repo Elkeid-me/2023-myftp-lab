@@ -1,5 +1,6 @@
 #include "tools.hxx"
 #include "file_process.hxx"
+#include <algorithm>
 #include <arpa/inet.h>
 #include <cstdio>
 #include <cstring>
@@ -134,7 +135,8 @@ std::uint32_t myftp_head::get_payload_length() const
 
     while (n_received_byte != file_size)
     {
-        std::size_t nread_bytes{file_process::read(fd_to_host, buf, BUF_SIZE)};
+        std::size_t nread_bytes{file_process::read(
+            fd_to_host, buf, std::min(BUF_SIZE, file_size - n_received_byte))};
 
         if (nread_bytes < 0)
             goto error;
