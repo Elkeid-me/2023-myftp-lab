@@ -203,10 +203,16 @@ bool list(int fd_to_client, char *buf)
                                   MYFTP_HEAD_SIZE + read_num + 1);
 
             if (!list_reply.send(fd_to_client))
+            {
+                pclose(read_fp);
                 return false;
+            }
             if (file_process::write(fd_to_client, buf, read_num + 1) !=
                 read_num + 1)
+            {
+                pclose(read_fp);
                 return false;
+            }
         }
         pclose(read_fp);
     }
@@ -244,15 +250,25 @@ bool sha256(int fd_to_client, char *buf, std::uint32_t file_name_length)
                 buf[read_num] = 0;
 
                 if (!SHA_REPLAY_SUCCESS.send(fd_to_client))
+                {
+                    pclose(read_fp);
                     return false;
+                }
 
                 myftp_head sha_reply_head(MYFTP_HEAD_TYPE::FILE_DATA, 1,
                                           MYFTP_HEAD_SIZE + read_num + 1);
+
                 if (!sha_reply_head.send(fd_to_client))
+                {
+                    pclose(read_fp);
                     return false;
+                }
                 if (file_process::write(fd_to_client, buf, read_num + 1) !=
                     read_num + 1)
+                {
+                    pclose(read_fp);
                     return false;
+                }
             }
             pclose(read_fp);
         }
