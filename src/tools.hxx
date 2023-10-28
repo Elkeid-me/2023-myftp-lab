@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
 #include <regex>
 #include <string_view>
 
@@ -69,6 +70,18 @@ public:
 
     [[nodiscard]] bool get(int fd_to_host);
     [[nodiscard]] bool send(int fd_to_host) const;
+};
+
+class FILE_ptr
+{
+private:
+    std::FILE *m_ptr = nullptr;
+
+public:
+    FILE_ptr(std::FILE *ptr);
+    bool is_valid() const;
+    std::FILE *get_ptr();
+    ~FILE_ptr();
 };
 
 constexpr std::size_t MYFTP_HEAD_SIZE{sizeof(myftp_head)};

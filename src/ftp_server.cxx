@@ -190,11 +190,11 @@ void quit_connection(int fd_to_client)
 
 bool list(int fd_to_client, char *buf)
 {
-    FILE *read_fp{popen("ls", "r")};
-    if (read_fp != nullptr)
+    FILE_ptr read_fp{popen("ls", "r")};
+    if (read_fp.is_valid())
     {
         if (std::size_t read_num{
-                fread(buf, sizeof(char), BUF_SIZE - 1, read_fp)};
+                fread(buf, sizeof(char), BUF_SIZE - 1, read_fp.get_ptr())};
             read_num > 0)
         {
             buf[read_num] = 0;
@@ -203,18 +203,11 @@ bool list(int fd_to_client, char *buf)
                                   MYFTP_HEAD_SIZE + read_num + 1);
 
             if (!list_reply.send(fd_to_client))
-            {
-                pclose(read_fp);
                 return false;
-            }
             if (file_process::write(fd_to_client, buf, read_num + 1) !=
                 read_num + 1)
-            {
-                pclose(read_fp);
                 return false;
-            }
         }
-        pclose(read_fp);
     }
     return true;
 }
@@ -240,37 +233,28 @@ bool sha256(int fd_to_client, char *buf, std::uint32_t file_name_length)
     }
     else
     {
-        FILE *read_fp{popen(cmd.c_str(), "r")};
-        if (read_fp != nullptr)
+        FILE_ptr read_fp{popen(cmd.c_str(), "r")};
+        if (read_fp.is_valid())
         {
             if (std::size_t read_num{
-                    fread(buf, sizeof(char), BUF_SIZE - 1, read_fp)};
+                    fread(buf, sizeof(char), BUF_SIZE - 1, read_fp.get_ptr())};
                 read_num > 0)
             {
                 buf[read_num] = 0;
 
                 if (!SHA_REPLAY_SUCCESS.send(fd_to_client))
-                {
-                    pclose(read_fp);
                     return false;
-                }
 
                 myftp_head sha_reply_head(MYFTP_HEAD_TYPE::FILE_DATA, 1,
                                           MYFTP_HEAD_SIZE + read_num + 1);
 
                 if (!sha_reply_head.send(fd_to_client))
-                {
-                    pclose(read_fp);
                     return false;
-                }
+
                 if (file_process::write(fd_to_client, buf, read_num + 1) !=
                     read_num + 1)
-                {
-                    pclose(read_fp);
                     return false;
-                }
             }
-            pclose(read_fp);
         }
     }
     return true;
