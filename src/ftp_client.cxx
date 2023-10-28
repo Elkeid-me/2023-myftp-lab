@@ -168,7 +168,8 @@ open_connection_error:
     return -1;
 }
 
-[[nodiscard]] bool sha256(int fd_to_server, std::string_view file_name, char *buf)
+[[nodiscard]] bool sha256(int fd_to_server, std::string_view file_name,
+                          char *buf)
 {
     myftp_head head_buf(MYFTP_HEAD_TYPE::SHA_REQUEST, 1,
                         MYFTP_HEAD_SIZE + file_name.length() + 1);
@@ -255,7 +256,8 @@ quit_error:
     return false;
 }
 
-[[nodiscard]] bool upload_file(int fd_to_server, std::string_view file_name, char *buf)
+[[nodiscard]] bool upload_file(int fd_to_server, std::string_view file_name,
+                               char *buf)
 {
     std::string file_name_str(file_name);
 
@@ -296,7 +298,8 @@ upload_file_error:
     return false;
 }
 
-[[nodiscard]] bool download_file(int fd_to_server, std::string_view file_name, char *buf)
+[[nodiscard]] bool download_file(int fd_to_server, std::string_view file_name,
+                                 char *buf)
 {
     std::string file_name_str(file_name);
 
