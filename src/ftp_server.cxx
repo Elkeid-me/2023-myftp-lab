@@ -58,7 +58,8 @@ int main(int argc, char *argv[])
             listen_fd, reinterpret_cast<sockaddr *>(&client_addr),
             &client_len)};
 
-        std::thread new_thread(ftp_server_open_connection_function, fd_to_client);
+        std::thread new_thread(ftp_server_open_connection_function,
+                               fd_to_client);
         new_thread.detach();
     }
 
@@ -79,11 +80,23 @@ void ftp_server_open_connection_function(int fd_to_client)
 {
     myftp_head myftp_head_buf;
 
-    if (myftp_head_buf.get(fd_to_client) &&
-        myftp_head_buf.get_type() == MYFTP_HEAD_TYPE::OPEN_CONNECTION_REQUEST &&
-        open_connection(fd_to_client))
-        ftp_server_main_process_function(fd_to_client);
+    if (!myftp_head_buf.get(fd_to_client))
+    {
+        file_process::close(fd_to_client);
+        return;
+    }
+    if (myftp_head_buf.get_type() != MYFTP_HEAD_TYPE::OPEN_CONNECTION_REQUEST)
+    {
+        file_process::close(fd_to_client);
+        return;
+    }
+    if (!open_connection(fd_to_client))
+    {
+        file_process::close(fd_to_client);
+        return;
+    }
 
+    ftp_server_main_process_function(fd_to_client);
     file_process::close(fd_to_client);
 }
 
