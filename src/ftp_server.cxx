@@ -15,8 +15,8 @@
 
 bool check_ip(const char *ip, const char *port);
 void ftp_server_thread_function(int fd_to_client);
-void quit_connection(int fd_to_client);
 
+[[nodiscard]] bool quit_connection(int fd_to_client);
 [[nodiscard]] bool open_connection(int fd_to_client);
 [[nodiscard]] bool list(int fd_to_client, char *buf);
 [[nodiscard]] bool sha256(int fd_to_client, char *buf,
@@ -79,42 +79,44 @@ void ftp_server_thread_function(int fd_to_client)
     myftp_head myftp_head_buf;
     char file_buf[BUF_SIZE];
 
-    bool is_successful{false};
+    bool is_connected{true};
 
     while (true)
     {
         if (!myftp_head_buf.get(fd_to_client))
-            return;
-
-        switch (myftp_head_buf.get_type())
         {
-        case MYFTP_HEAD_TYPE::OPEN_CONNECTION_REQUEST:
-            is_successful = open_connection(fd_to_client);
-            break;
-        case MYFTP_HEAD_TYPE::LIST_REQUEST:
-            is_successful = list(fd_to_client, file_buf);
-            break;
-        case MYFTP_HEAD_TYPE::GET_REQUEST:
-            is_successful = download_file(fd_to_client, file_buf,
-                                          myftp_head_buf.get_payload_length());
-            break;
-        case MYFTP_HEAD_TYPE::PUT_REQUEST:
-            is_successful = upload_file(fd_to_client, file_buf,
-                                        myftp_head_buf.get_payload_length());
-            break;
-        case MYFTP_HEAD_TYPE::SHA_REQUEST:
-            is_successful = sha256(fd_to_client, file_buf,
-                                   myftp_head_buf.get_payload_length());
-            break;
-        case MYFTP_HEAD_TYPE::QUIT_REQUEST:
-            quit_connection(fd_to_client);
-            return;
-        default:
             file_process::close(fd_to_client);
             return;
         }
 
-        if (!is_successful)
+        switch (myftp_head_buf.get_type())
+        {
+        case MYFTP_HEAD_TYPE::OPEN_CONNECTION_REQUEST:
+            is_connected = open_connection(fd_to_client);
+            break;
+        case MYFTP_HEAD_TYPE::LIST_REQUEST:
+            is_connected = list(fd_to_client, file_buf);
+            break;
+        case MYFTP_HEAD_TYPE::GET_REQUEST:
+            is_connected = download_file(fd_to_client, file_buf,
+                                         myftp_head_buf.get_payload_length());
+            break;
+        case MYFTP_HEAD_TYPE::PUT_REQUEST:
+            is_connected = upload_file(fd_to_client, file_buf,
+                                       myftp_head_buf.get_payload_length());
+            break;
+        case MYFTP_HEAD_TYPE::SHA_REQUEST:
+            is_connected = sha256(fd_to_client, file_buf,
+                                  myftp_head_buf.get_payload_length());
+            break;
+        case MYFTP_HEAD_TYPE::QUIT_REQUEST:
+            is_connected = quit_connection(fd_to_client);
+            break;
+        default:
+            is_connected = false;
+        }
+
+        if (!is_connected)
         {
             file_process::close(fd_to_client);
             return;
@@ -122,14 +124,15 @@ void ftp_server_thread_function(int fd_to_client)
     }
 }
 
-bool open_connection(int fd_to_client)
+[[nodiscard]] bool open_connection(int fd_to_client)
 {
     if (!OPEN_CONNECTION_REPLY.send(fd_to_client))
         return false;
     return true;
 }
 
-bool upload_file(int fd_to_client, char *buf, std::uint32_t file_name_length)
+[[nodiscard]] bool upload_file(int fd_to_client, char *buf,
+                               std::uint32_t file_name_length)
 {
     if (file_process::read(fd_to_client, buf, file_name_length) !=
         file_name_length)
@@ -152,7 +155,8 @@ bool upload_file(int fd_to_client, char *buf, std::uint32_t file_name_length)
     return true;
 }
 
-bool download_file(int fd_to_client, char *buf, std::uint32_t file_name_length)
+[[nodiscard]] bool download_file(int fd_to_client, char *buf,
+                                 std::uint32_t file_name_length)
 {
     if (file_process::read(fd_to_client, buf, file_name_length) !=
         file_name_length)
@@ -182,13 +186,13 @@ bool download_file(int fd_to_client, char *buf, std::uint32_t file_name_length)
     return true;
 }
 
-void quit_connection(int fd_to_client)
+[[nodiscard]] bool quit_connection(int fd_to_client)
 {
     bool make_gcc_happy{QUIT_REPLY.send(fd_to_client)};
-    file_process::close(fd_to_client);
+    return false;
 }
 
-bool list(int fd_to_client, char *buf)
+[[nodiscard]] bool list(int fd_to_client, char *buf)
 {
     FILE_ptr read_fp{popen("ls", "r")};
     if (read_fp.is_valid())
@@ -212,16 +216,15 @@ bool list(int fd_to_client, char *buf)
     return true;
 }
 
-bool sha256(int fd_to_client, char *buf, std::uint32_t file_name_length)
+[[nodiscard]] bool sha256(int fd_to_client, char *buf,
+                          std::uint32_t file_name_length)
 {
     if (file_process::read(fd_to_client, buf, file_name_length) !=
         file_name_length)
         return false;
 
     std::string cmd{"sha256sum "};
-    cmd += "\"";
     cmd += buf;
-    cmd += "\"";
 
     std::string path{"./"};
     path += buf;

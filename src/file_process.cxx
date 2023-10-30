@@ -59,7 +59,7 @@ namespace file_process
         ssize_t ret{robust_read(fd, buf, size)};
         if (ret < 0)
             error_handle::unix_error("Function `read' error");
-        return static_cast<std::size_t>(ret);
+        return ret;
     }
 
     [[nodiscard]] std::size_t write(int fd, const char *buf, std::size_t size)
@@ -67,6 +67,6 @@ namespace file_process
         ssize_t ret{robust_write(fd, buf, size)};
         if (ret < 0)
             error_handle::unix_error("Function `write' error");
-        return static_cast<std::size_t>(ret);
+        return ret;
     }
 }

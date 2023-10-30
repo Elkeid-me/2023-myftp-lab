@@ -26,11 +26,11 @@ enum class COMMAND_TYPE
 };
 
 const std::regex LIST_COMMAND_PATTERN{R"(\s*ls\s*)"};
-const std::regex OPEN_COMMAND_PATTERN{R"(\s*open (\S+) (\S+)\s*)"};
-const std::regex SHA_COMMAND_PATTERN{R"(\s*sha256 (.+))"};
+const std::regex OPEN_COMMAND_PATTERN{R"(\s*open\s+(\S+)\s+(\S+)\s*)"};
+const std::regex SHA_COMMAND_PATTERN{R"(\s*sha256\s+(\S+)\s*)"};
 const std::regex QUIT_COMMAND_PATTERN{R"(\s*quit\s*)"};
-const std::regex GET_COMMAND_PATTERN{R"(\s*get (.+))"};
-const std::regex PUT_COMMAND_PATTERN{R"(\s*put (.+))"};
+const std::regex GET_COMMAND_PATTERN{R"(\s*get\s+(\S+)\s*)"};
+const std::regex PUT_COMMAND_PATTERN{R"(\s*put\s+(\S+)\s*)"};
 
 void ftp_client_loop();
 void connected_function(int fd_to_server, const std::string_view &ip,
@@ -68,9 +68,7 @@ void ftp_client_loop()
     std::string server_ip, server_port;
     while (true)
     {
-        /* print prompt */
         std::cout << PROMPT << "(none) > ";
-        /* prompt printed */
 
         std::getline(std::cin, command);
         auto [command_type, str_1, str_2]{parse_command(command)};
@@ -106,9 +104,8 @@ void connected_function(int fd_to_server, const std::string_view &ip,
 
     while (true)
     {
-        /* print prompt */
         std::cout << PROMPT << '(' << ip << ':' << port << ") > ";
-        /* prompt printed */
+
         std::getline(std::cin, command);
         auto [command_type, str_1, str_2]{parse_command(command)};
 

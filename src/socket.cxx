@@ -7,6 +7,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+constexpr int optval{1};
 static constexpr int LISTEN_BACKLOG{1024};
 
 static void set_socket_option(int s, int level, int optname, const void *optval,
@@ -48,8 +49,8 @@ static int open_listen_fd(const char *port)
         if ((listen_fd = socket(ptr->ai_family, ptr->ai_socktype,
                                 ptr->ai_protocol)) >= 0)
         {
-            set_socket_option(listen_fd, SOL_SOCKET, SO_REUSEADDR,
-                              &socket_process::optval, sizeof(int));
+            set_socket_option(listen_fd, SOL_SOCKET, SO_REUSEADDR, &optval,
+                              sizeof(int));
 
             if (bind(listen_fd, ptr->ai_addr, ptr->ai_addrlen) == 0)
                 break;
