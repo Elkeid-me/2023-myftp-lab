@@ -103,7 +103,7 @@ void connected_function(int fd_to_server, std::string_view ip,
 
     std::string command;
 
-    bool is_connected{false};
+    bool is_successful{false};
 
     while (true)
     {
@@ -115,26 +115,34 @@ void connected_function(int fd_to_server, std::string_view ip,
         switch (command_type)
         {
         case COMMAND_TYPE::LIST:
-            is_connected = list(fd_to_server, buf);
+            is_successful = list(fd_to_server, buf);
+            if (!is_successful)
+                std::cout << "List file error.\n";
             break;
         case COMMAND_TYPE::GET:
-            is_connected = download_file(fd_to_server, str_1, buf);
+            is_successful = download_file(fd_to_server, str_1, buf);
+            if (!is_successful)
+                std::cout << "Download file error.\n";
             break;
         case COMMAND_TYPE::PUT:
-            is_connected = upload_file(fd_to_server, str_1, buf);
+            is_successful = upload_file(fd_to_server, str_1, buf);
+            if (!is_successful)
+                std::cout << "Upload file error.\n";
             break;
         case COMMAND_TYPE::SHA:
-            is_connected = sha256(fd_to_server, str_1, buf);
+            is_successful = sha256(fd_to_server, str_1, buf);
+            if (!is_successful)
+                std::cout << "Sha256 sum file error.\n";
             break;
         case COMMAND_TYPE::QUIT:
-            is_connected = quit(fd_to_server);
+            is_successful = quit(fd_to_server);
             break;
         default:
             std::cout << "Invalid command.\n";
             break;
         }
 
-        if (!is_connected)
+        if (!is_successful)
         {
             file_process::close(fd_to_server);
             return;
@@ -155,18 +163,23 @@ int open_connection(const char *ip, const char *port)
     }
 
     if (!OPEN_CONNECTION_REQUEST.send(fd_to_server))
-        goto open_connection_error;
+    {
+        file_process::close(fd_to_server);
+        std::cout << "Connect to server: [" << ip << "]:" << port
+                  << " error.\n";
+        return -1;
+    }
 
     if (!head_buf.get(fd_to_server) ||
         head_buf.get_type() != MYFTP_HEAD_TYPE::OPEN_CONNECTION_REPLY)
-        goto open_connection_error;
+    {
+        file_process::close(fd_to_server);
+        std::cout << "Connect to server: [" << ip << "]:" << port
+                  << " error.\n";
+        return -1;
+    }
 
     return fd_to_server;
-
-open_connection_error:
-    file_process::close(fd_to_server);
-    std::cout << "Connect to server: [" << ip << "]:" << port << " error.\n";
-    return -1;
 }
 
 [[nodiscard]] bool sha256(int fd_to_server, std::string_view file_name,
@@ -175,15 +188,15 @@ open_connection_error:
     myftp_head head_buf(MYFTP_HEAD_TYPE::SHA_REQUEST, 1,
                         MYFTP_HEAD_SIZE + file_name.length() + 1);
     if (!head_buf.send(fd_to_server))
-        goto sha256_error;
+        return false;
     if (file_process::write(fd_to_server, file_name.data(),
                             file_name.length()) != file_name.length() ||
         file_process::write(fd_to_server, "\0", 1) != 1)
-        goto sha256_error;
+        return false;
 
     if (!head_buf.get(fd_to_server) ||
         head_buf.get_type() != MYFTP_HEAD_TYPE::SHA_REPLY)
-        goto sha256_error;
+        return false;
 
     switch (head_buf.get_status())
     {
@@ -194,22 +207,18 @@ open_connection_error:
     case 1:
         if (!head_buf.get(fd_to_server) ||
             head_buf.get_type() != MYFTP_HEAD_TYPE::FILE_DATA)
-            goto sha256_error;
+            return false;
 
         if (file_process::read(fd_to_server, buf,
                                head_buf.get_payload_length()) !=
             head_buf.get_payload_length())
-            goto sha256_error;
+            return false;
 
         std::cout << "------Sha256 result------\n";
         std::cout << buf;
         std::cout << "----Sha256 result end----\n";
     }
     return true;
-
-sha256_error:
-    std::cout << "Sha256sum file error.\n";
-    return false;
 }
 
 [[nodiscard]] bool list(int fd_to_server, char *buf)
@@ -217,25 +226,21 @@ sha256_error:
 
     myftp_head head_buf;
     if (!LIST_REQUEST.send(fd_to_server))
-        goto list_error;
+        return false;
 
     if (!head_buf.get(fd_to_server) ||
         head_buf.get_type() != MYFTP_HEAD_TYPE::LIST_REPLY)
-        goto list_error;
+        return false;
 
     if (file_process::read(fd_to_server, buf, head_buf.get_payload_length()) !=
         head_buf.get_payload_length())
-        goto list_error;
+        return false;
 
     std::cout << "------List of files------\n";
     std::cout << buf;
     std::cout << "----List of files end----\n";
 
     return true;
-
-list_error:
-    std::cout << "List file error.\n";
-    return false;
 }
 
 [[nodiscard]] bool quit(int fd_to_server)
@@ -243,19 +248,16 @@ list_error:
     myftp_head head_buf;
 
     if (!QUIT_REQUEST.send(fd_to_server))
-        goto quit_error;
+        return false;
 
     if (!head_buf.get(fd_to_server))
-        goto quit_error;
+        return false;
 
-    if (head_buf.get_type() == MYFTP_HEAD_TYPE::QUIT_REPLY)
-        std::cout << "Quit successfully.\n";
-    else
-        goto quit_error;
+    if (head_buf.get_type() != MYFTP_HEAD_TYPE::QUIT_REPLY)
+        return false;
 
-quit_error:
-    std::cout << "Quit connection error.\n";
-    return false;
+    std::cout << "Quit successfully.\n";
+    return true;
 }
 
 [[nodiscard]] bool upload_file(int fd_to_server, std::string_view file_name,
@@ -275,30 +277,26 @@ quit_error:
     myftp_head head_buf(MYFTP_HEAD_TYPE::PUT_REQUEST, 1,
                         MYFTP_HEAD_SIZE + file_name_str.length() + 1);
     if (!head_buf.send(fd_to_server))
-        goto upload_file_error;
+        return false;
 
     if (file_process::write(fd_to_server, file_name_str.c_str(),
                             file_name_str.length() + 1) !=
         file_name_str.length() + 1)
-        goto upload_file_error;
+        return false;
 
     if (!head_buf.get(fd_to_server) ||
         head_buf.get_type() != MYFTP_HEAD_TYPE::PUT_REPLY)
-        goto upload_file_error;
+        return false;
 
     head_buf.pack(MYFTP_HEAD_TYPE::FILE_DATA, 1, MYFTP_HEAD_SIZE + file_size);
 
     if (!head_buf.send(fd_to_server))
-        goto upload_file_error;
+        return false;
 
     if (!send_file(fd_to_server, file_name_str.c_str(), buf, file_size))
-        goto upload_file_error;
+        return false;
 
     return true;
-
-upload_file_error:
-    std::cout << "Upload file error.\n";
-    return false;
 }
 
 [[nodiscard]] bool download_file(int fd_to_server, std::string_view file_name,
@@ -310,16 +308,16 @@ upload_file_error:
                         MYFTP_HEAD_SIZE + file_name_str.length() + 1);
 
     if (!head_buf.send(fd_to_server))
-        goto download_file_error;
+        return false;
 
     if (file_process::write(fd_to_server, file_name_str.c_str(),
                             file_name_str.length() + 1) !=
         file_name_str.length() + 1)
-        goto download_file_error;
+        return false;
 
     if (!head_buf.get(fd_to_server) ||
         head_buf.get_type() != MYFTP_HEAD_TYPE::GET_REPLY)
-        goto download_file_error;
+        return false;
 
     switch (head_buf.get_status())
     {
@@ -330,18 +328,14 @@ upload_file_error:
     case 1:
         if (!head_buf.get(fd_to_server) ||
             head_buf.get_type() != MYFTP_HEAD_TYPE::FILE_DATA)
-            goto download_file_error;
+            return false;
 
         if (!receive_file(fd_to_server, file_name_str.c_str(), buf,
                           head_buf.get_payload_length()))
-            goto download_file_error;
+            return false;
     }
 
     return true;
-
-download_file_error:
-    std::cout << "Download file error.\n";
-    return false;
 }
 
 std::tuple<COMMAND_TYPE, std::string_view, std::string_view>
