@@ -14,7 +14,8 @@
 #include <thread>
 
 bool check_ip(const char *ip, const char *port);
-void ftp_server_thread_function(int fd_to_client);
+void ftp_server_open_connection_function(int fd_to_client);
+void ftp_server_main_process_function(int fd_to_client);
 
 [[nodiscard]] bool quit_connection(int fd_to_client);
 [[nodiscard]] bool open_connection(int fd_to_client);
@@ -57,7 +58,7 @@ int main(int argc, char *argv[])
             listen_fd, reinterpret_cast<sockaddr *>(&client_addr),
             &client_len)};
 
-        std::thread new_thread(ftp_server_thread_function, fd_to_client);
+        std::thread new_thread(ftp_server_open_connection_function, fd_to_client);
         new_thread.detach();
     }
 
@@ -74,26 +75,32 @@ bool check_ip(const char *ip, const char *port)
     return true;
 }
 
-void ftp_server_thread_function(int fd_to_client)
+void ftp_server_open_connection_function(int fd_to_client)
+{
+    myftp_head myftp_head_buf;
+
+    if (myftp_head_buf.get(fd_to_client) &&
+        myftp_head_buf.get_type() == MYFTP_HEAD_TYPE::OPEN_CONNECTION_REQUEST &&
+        open_connection(fd_to_client))
+        ftp_server_main_process_function(fd_to_client);
+
+    file_process::close(fd_to_client);
+}
+
+void ftp_server_main_process_function(int fd_to_client)
 {
     myftp_head myftp_head_buf;
     char file_buf[BUF_SIZE];
 
-    bool is_connected{true};
+    bool is_connected{false};
 
     while (true)
     {
         if (!myftp_head_buf.get(fd_to_client))
-        {
-            file_process::close(fd_to_client);
             return;
-        }
 
         switch (myftp_head_buf.get_type())
         {
-        case MYFTP_HEAD_TYPE::OPEN_CONNECTION_REQUEST:
-            is_connected = open_connection(fd_to_client);
-            break;
         case MYFTP_HEAD_TYPE::LIST_REQUEST:
             is_connected = list(fd_to_client, file_buf);
             break;
@@ -117,10 +124,7 @@ void ftp_server_thread_function(int fd_to_client)
         }
 
         if (!is_connected)
-        {
-            file_process::close(fd_to_client);
             return;
-        }
     }
 }
 

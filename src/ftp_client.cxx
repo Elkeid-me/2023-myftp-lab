@@ -103,7 +103,7 @@ void connected_function(int fd_to_server, std::string_view ip,
 
     std::string command;
 
-    bool is_connected{true};
+    bool is_connected{false};
 
     while (true)
     {
