@@ -25,16 +25,19 @@ enum class COMMAND_TYPE
     INVALID
 };
 
-const std::regex LIST_COMMAND_PATTERN{R"(\s*ls\s*)"};
-const std::regex OPEN_COMMAND_PATTERN{R"(\s*open\s+(\S+)\s+(\S+)\s*)"};
-const std::regex SHA_COMMAND_PATTERN{R"(\s*sha256\s+(\S+)\s*)"};
-const std::regex QUIT_COMMAND_PATTERN{R"(\s*quit\s*)"};
-const std::regex GET_COMMAND_PATTERN{R"(\s*get\s+(\S+)\s*)"};
-const std::regex PUT_COMMAND_PATTERN{R"(\s*put\s+(\S+)\s*)"};
+constexpr auto REGEX_FLAG_2{std::regex_constants::ECMAScript |
+                            std::regex_constants::optimize};
+const std::regex LIST_COMMAND_PATTERN{R"(\s*ls\s*)", REGEX_FLAG_2};
+const std::regex OPEN_COMMAND_PATTERN{R"(\s*open\s+(\S+)\s+(\S+)\s*)",
+                                      REGEX_FLAG_2};
+const std::regex SHA_COMMAND_PATTERN{R"(\s*sha256\s+(\S+)\s*)", REGEX_FLAG_2};
+const std::regex QUIT_COMMAND_PATTERN{R"(\s*quit\s*)", REGEX_FLAG_2};
+const std::regex GET_COMMAND_PATTERN{R"(\s*get\s+(\S+)\s*)", REGEX_FLAG_2};
+const std::regex PUT_COMMAND_PATTERN{R"(\s*put\s+(\S+)\s*)", REGEX_FLAG_2};
 
 void ftp_client_loop();
-void connected_function(int fd_to_server, const std::string_view &ip,
-                        const std::string_view &port);
+void connected_function(int fd_to_server, std::string_view ip,
+                        std::string_view port);
 
 std::tuple<COMMAND_TYPE, std::string_view, std::string_view>
 parse_command(std::string_view command);
@@ -57,7 +60,7 @@ int main()
     return 0;
 }
 
-constexpr std::string_view PROMPT{"client"};
+constexpr std::string_view PROMPT{"client "};
 
 void ftp_client_loop()
 {
@@ -68,7 +71,7 @@ void ftp_client_loop()
     std::string server_ip, server_port;
     while (true)
     {
-        std::cout << PROMPT << "(none) > ";
+        std::cout << PROMPT << "[none] > ";
 
         std::getline(std::cin, command);
         auto [command_type, str_1, str_2]{parse_command(command)};
@@ -93,8 +96,8 @@ void ftp_client_loop()
     }
 }
 
-void connected_function(int fd_to_server, const std::string_view &ip,
-                        const std::string_view &port)
+void connected_function(int fd_to_server, std::string_view ip,
+                        std::string_view port)
 {
     char buf[BUF_SIZE];
 
@@ -104,7 +107,7 @@ void connected_function(int fd_to_server, const std::string_view &ip,
 
     while (true)
     {
-        std::cout << PROMPT << '(' << ip << ':' << port << ") > ";
+        std::cout << PROMPT << "[" << ip << "]:" << port << " > ";
 
         std::getline(std::cin, command);
         auto [command_type, str_1, str_2]{parse_command(command)};
@@ -146,7 +149,8 @@ int open_connection(const char *ip, const char *port)
     int fd_to_server = socket_process::open_client_fd(ip, port);
     if (fd_to_server < 0)
     {
-        std::cout << "Connect to server: " << ip << ':' << port << " error.\n";
+        std::cout << "Connect to server: [" << ip << "]:" << port
+                  << " error.\n";
         return -1;
     }
 
@@ -161,7 +165,7 @@ int open_connection(const char *ip, const char *port)
 
 open_connection_error:
     file_process::close(fd_to_server);
-    std::cout << "Connect to server: " << ip << ':' << port << " error.\n";
+    std::cout << "Connect to server: [" << ip << "]:" << port << " error.\n";
     return -1;
 }
 
@@ -184,7 +188,8 @@ open_connection_error:
     switch (head_buf.get_status())
     {
     case 0:
-        std::cout << "Remote file `" << file_name << "' does not exist.\n";
+        std::cout << "Remote file `" << file_name
+                  << "' does not exist, or is not a regular file.\n";
         break;
     case 1:
         if (!head_buf.get(fd_to_server) ||
@@ -260,7 +265,8 @@ quit_error:
 
     if (!std::filesystem::is_regular_file(file_name_str))
     {
-        std::cout << "Local file `" << file_name_str << "' does not exist.\n";
+        std::cout << "Local file `" << file_name_str
+                  << "' does not exist, or is not a regular file.\n";
         return true;
     }
 
@@ -318,7 +324,8 @@ upload_file_error:
     switch (head_buf.get_status())
     {
     case 0:
-        std::cout << "Remote file `" << file_name << "' does not exist.\n";
+        std::cout << "Remote file `" << file_name
+                  << "' does not exist, or is not a regular file.\n";
         break;
     case 1:
         if (!head_buf.get(fd_to_server) ||
