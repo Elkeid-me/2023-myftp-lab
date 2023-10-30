@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    int listen_fd{socket_process::open_listen_fd(port)};
+    int listen_fd{socket_process::open_listen_fd(ip, port)};
 
     if (listen_fd < 0)
         return 1;

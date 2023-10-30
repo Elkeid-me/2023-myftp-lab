@@ -18,7 +18,7 @@ constexpr auto REGEX_FLAG{std::regex_constants::icase |
                           std::regex_constants::optimize};
 const std::regex PORT_PATTERN{"[0-9]+", REGEX_FLAG};
 const std::regex IPv4_PATTERN{R"([0-9]{1,3}(\.[0-9]{1,3}){3})", REGEX_FLAG};
-const std::regex IPv6_PATTERN{R"(([0-9]|[a-f])(:([0-9]|[a-f])){7})",
+const std::regex IPv6_PATTERN{R"(([0-9]|[a-f]{1,4})(:([0-9]|[a-f]){1,4}){7})",
                               REGEX_FLAG};
 
 enum class MYFTP_HEAD_TYPE : std::uint8_t

@@ -32,14 +32,14 @@ static addrinfo *get_addr_info(const char *host, const char *service,
     return nullptr;
 }
 
-static int open_listen_fd(const char *port)
+static int open_listen_fd(const char *hostname, const char *port)
 {
     addrinfo hints;
     std::memset(&hints, 0, sizeof(addrinfo));
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE | AI_ADDRCONFIG | AI_NUMERICSERV;
 
-    addrinfo *list_head{get_addr_info(nullptr, port, &hints)};
+    addrinfo *list_head{get_addr_info(hostname, port, &hints)};
 
     int listen_fd;
     addrinfo *ptr;
@@ -103,11 +103,11 @@ static int open_client_fd(const char *hostname, const char *port)
 
 namespace socket_process
 {
-    int open_listen_fd(const char *port)
+    int open_listen_fd(const char *hostname, const char *port)
     {
         int rc;
 
-        if ((rc = ::open_listen_fd(port)) < 0)
+        if ((rc = ::open_listen_fd(hostname, port)) < 0)
             error_handle::unix_error("Open_listenfd error");
         return rc;
     }
