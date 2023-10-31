@@ -84,7 +84,10 @@ void ftp_client_loop()
             fd_to_server =
                 open_connection(server_ip.c_str(), server_port.c_str());
             if (fd_to_server >= 0)
+            {
                 connected_function(fd_to_server, str_1, str_2);
+                file_process::close(fd_to_server);
+            }
             break;
         case COMMAND_TYPE::QUIT:
             std::cout << "Quit myftp client.\n";
@@ -103,8 +106,6 @@ void connected_function(int fd_to_server, std::string_view ip,
 
     std::string command;
 
-    bool is_successful{false};
-
     while (true)
     {
         std::cout << PROMPT << "[" << ip << "]:" << port << " > ";
@@ -115,37 +116,40 @@ void connected_function(int fd_to_server, std::string_view ip,
         switch (command_type)
         {
         case COMMAND_TYPE::LIST:
-            is_successful = list(fd_to_server, buf);
-            if (!is_successful)
+            if (!list(fd_to_server, buf))
+            {
                 std::cout << "List file error.\n";
+                return;
+            }
             break;
         case COMMAND_TYPE::GET:
-            is_successful = download_file(fd_to_server, str_1, buf);
-            if (!is_successful)
+            if (!download_file(fd_to_server, str_1, buf))
+            {
                 std::cout << "Download file error.\n";
+                return;
+            }
             break;
         case COMMAND_TYPE::PUT:
-            is_successful = upload_file(fd_to_server, str_1, buf);
-            if (!is_successful)
+            if (!upload_file(fd_to_server, str_1, buf))
+            {
                 std::cout << "Upload file error.\n";
+                return;
+            }
             break;
         case COMMAND_TYPE::SHA:
-            is_successful = sha256(fd_to_server, str_1, buf);
-            if (!is_successful)
+            if (!sha256(fd_to_server, str_1, buf))
+            {
                 std::cout << "Sha256 sum file error.\n";
+                return;
+            }
             break;
         case COMMAND_TYPE::QUIT:
-            is_successful = quit(fd_to_server);
-            break;
+            if (!quit(fd_to_server))
+                std::cout << "Quit error.\n";
+            return;
         default:
             std::cout << "Invalid command.\n";
             break;
-        }
-
-        if (!is_successful)
-        {
-            file_process::close(fd_to_server);
-            return;
         }
     }
 }
@@ -248,25 +252,16 @@ int open_connection(const char *ip, const char *port)
     myftp_head head_buf;
 
     if (!QUIT_REQUEST.send(fd_to_server))
-    {
-        std::cout << "Quit error.\n";
         return false;
-    }
 
     if (!head_buf.get(fd_to_server))
-    {
-        std::cout << "Quit error.\n";
         return false;
-    }
 
     if (head_buf.get_type() != MYFTP_HEAD_TYPE::QUIT_REPLY)
-    {
-        std::cout << "Quit error.\n";
         return false;
-    }
 
     std::cout << "Quit successfully.\n";
-    return false;
+    return true;
 }
 
 [[nodiscard]] bool upload_file(int fd_to_server, std::string_view file_name,
