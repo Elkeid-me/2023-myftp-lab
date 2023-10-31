@@ -248,16 +248,25 @@ int open_connection(const char *ip, const char *port)
     myftp_head head_buf;
 
     if (!QUIT_REQUEST.send(fd_to_server))
+    {
+        std::cout << "Quit error.\n";
         return false;
+    }
 
     if (!head_buf.get(fd_to_server))
+    {
+        std::cout << "Quit error.\n";
         return false;
+    }
 
     if (head_buf.get_type() != MYFTP_HEAD_TYPE::QUIT_REPLY)
+    {
+        std::cout << "Quit error.\n";
         return false;
+    }
 
     std::cout << "Quit successfully.\n";
-    return true;
+    return false;
 }
 
 [[nodiscard]] bool upload_file(int fd_to_server, std::string_view file_name,
