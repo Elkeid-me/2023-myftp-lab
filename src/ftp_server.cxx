@@ -205,7 +205,7 @@ void ftp_server_main_process_function(int fd_to_client)
 
 [[nodiscard]] bool quit_connection(int fd_to_client)
 {
-    bool make_gcc_happy{QUIT_REPLY.send(fd_to_client)};
+    bool  make_gcc_happy [[maybe_unused]] {QUIT_REPLY.send(fd_to_client)};
     return false;
 }
 

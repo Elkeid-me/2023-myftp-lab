@@ -56,7 +56,7 @@ bool myftp_head::is_valid() const
 
     case MYFTP_HEAD_TYPE::GET_REPLY:
     case MYFTP_HEAD_TYPE::SHA_REPLY:
-        if (get_status() != 0 && get_status() != 1 ||
+        if ((get_status() != 0 && get_status() != 1) ||
             get_length() != MYFTP_HEAD_SIZE)
             return false;
 

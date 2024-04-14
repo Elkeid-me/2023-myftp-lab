@@ -64,8 +64,6 @@ constexpr std::string_view PROMPT{"client "};
 
 void ftp_client_loop()
 {
-    char buf[BUF_SIZE];
-
     std::string command;
     int fd_to_server;
     std::string server_ip, server_port;
@@ -350,8 +348,8 @@ parse_command(std::string_view command)
     if (std::regex_match(command.begin(), command.end(), m,
                          OPEN_COMMAND_PATTERN))
     {
-        if (!std::regex_match(m[1].first, m[1].second, IPv4_PATTERN) &&
-                !std::regex_match(m[1].first, m[1].second, IPv6_PATTERN) ||
+        if ((!std::regex_match(m[1].first, m[1].second, IPv4_PATTERN) &&
+                !std::regex_match(m[1].first, m[1].second, IPv6_PATTERN)) ||
             !std::regex_match(m[2].first, m[2].second, PORT_PATTERN))
             return {COMMAND_TYPE::INVALID, {nullptr, 0}, {nullptr, 0}};
         return {COMMAND_TYPE::OPEN,
